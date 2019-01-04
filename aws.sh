@@ -73,7 +73,7 @@ INSTANCES=(
 OUTPUT_TYPE=table
 
 # Global Variables
-BOOTNODE=
+BOOTNODE_STRING=
 
 # COMMAND SHORTCUTS
 if [ -x "$(command -v pscp)" ]; then
@@ -176,7 +176,7 @@ function bootnode {
 
 function load {
 	COUNT=${1:-1}
-	BOOTNODE=`bootnode`
+	BOOTNODE_STRING=`bootnode`
 
 	rm -rf /tmp/aws.sh/ips
 	mkdir -p /tmp/aws.sh/ips
@@ -292,7 +292,7 @@ function geth_start {
 	IPs=($@)
 	for IP in "${IPs[@]}"; do
 		(	$SSH $SSH_USER@$IP "./$GETH_CMD init *.json"
-			$SSH $SSH_USER@$IP "nohup $GETH --bootnodes $BOOTNODE --mine --unlock 0 --password <(echo password) --ethstats $IP:$ETHSTATS &>./geth.log &"
+			$SSH $SSH_USER@$IP "nohup $GETH --bootnodes $BOOTNODE_STRING --mine --unlock 0 --password <(echo password) --ethstats $IP:$ETHSTATS &>./geth.log &"
 		) &
 	done
 	wait
