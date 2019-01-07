@@ -39,8 +39,13 @@ shift $((OPTIND-1))
 : ${BINARY_POSTFIX:=}
 : ${ETHSTATS:=nexty-testnet@198.13.40.85:80}
 : ${CONTRACT_ADDR:=cafecafecafecafecafecafecafecafecafecafe}
+: ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
+	# private: cd4bdb10b75e803d621f64cc22bffdfc5c4b9f8e63e67820cc27811664d43794
+	# public:  a83433c26792c93eb56269976cffeb889636ff3f6193b60793fa98c74d9ccdbf4e3a80e2da6b86712e014441828520333828ac4f4605b5d0a8af544f1c5ca67e
+	# address: 000007e01c1507147a0e338db1d029559db6cb19
 : ${BLOCK_TIME:=2}
 : ${EPOCH:=90}
+: ${DATA_DIR:=~/.ethereum}
 
 OUTPUT_TYPE=table
 
@@ -51,7 +56,12 @@ BOOTNODE_STRING=
 : ${GETH_CMD:=./build/bin/geth$BINARY_POSTFIX}
 : ${PUPPETH_CMD:=./build/bin/puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=./build/bin/bootnode$BINARY_POSTFIX}
-GETH="$GETH_CMD --syncmode full --cache 2048 --gcmode=archive --networkid $NETWORK_ID --rpc --rpcapi db,eth,net,web3,personal --rpccorsdomain \"*\" --rpcaddr 0.0.0.0 --gasprice 0 --targetgaslimit 42000000 --txpool.nolocals --txpool.pricelimit 0"
+ETHKEY_CMD=`which ethkey`
+GETH_CMD=`which geth`
+PUPPETH_CMD=`which puppeth`
+BOOTNODE_CMD=`which bootnode`
+GETH_CMD=$GETH_CMD --datadir="$DATA_DIR"
+GETH="$GETH_CMD --syncmode=full --cache 2048 --gcmode=archive --networkid $NETWORK_ID --rpc --rpcapi db,eth,net,web3,personal --rpccorsdomain \"*\" --rpcaddr 0.0.0.0 --gasprice 0 --targetgaslimit 42000000 --txpool.nolocals --txpool.pricelimit 0"
 
 function trim {
 	awk '{$1=$1};1'
@@ -72,12 +82,14 @@ function load {
 	COUNT=${1:-1}
 	BOOTNODE_STRING=`bootnode`
 
-	rm -rf ~/.ethereum
+	rm -rf "$DATA_DIR"
 	start $ALL_IPs | tr "\n" " " | awk '{$1=$1};1'
 }
 
 function create_account {
-	ACCOUNT=`$GETH_CMD account new --password <(echo password)`
+	echo password >| /tmp/password
+	ACCOUNT=`$GETH_CMD account new --password /tmp/password`
+	rm /tmp/password
 	echo "${ACCOUNT:10:40}"
 }
 
@@ -100,7 +112,7 @@ function test_load_pre_fund_accounts {
 # generate the genesis json file
 function generate_genesis {
 	ACs=($@)
-	PFACs=(`load_pre_fund_accounts`)
+	#PFACs=(`load_pre_fund_accounts`)
 
 	(	echo 2
 		echo 1
@@ -113,9 +125,10 @@ function generate_genesis {
 		echo
 		echo 0
 		echo $CONTRACT_ADDR
-		for PFAC in "${PFACs[@]}"; do
-			echo $PFAC
-		done
+		echo $PREFUND_ADDR
+		#for PFAC in "${PFACs[@]}"; do
+		#	echo $PFAC
+		#done
 		echo
 		echo no
 		echo $NETWORK_ID
@@ -146,8 +159,10 @@ function init_genesis {
 
 function geth_start {
 	$GETH_CMD init $@
-	#nohup $GETH --bootnodes $BOOTNODE_STRING --mine --unlock 0 --password <(echo password) --ethstats $IP:$ETHSTATS &>./geth.log &
-	$GETH --bootnodes $BOOTNODE_STRING --mine --unlock 0 --password <(echo password) --ethstats $IP:$ETHSTATS
+	echo password >| /tmp/password
+	#nohup $GETH --bootnodes $BOOTNODE_STRING --mine --unlock 0 --password /tmp/password --ethstats $IP:$ETHSTATS &>./geth.log &
+	$GETH --bootnodes $BOOTNODE_STRING --mine --unlock 0 --password /tmp/password --ethstats $IP:$ETHSTATS
+	rm /tmp/password
 }
 
 function start {
