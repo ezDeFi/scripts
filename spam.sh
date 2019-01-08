@@ -29,9 +29,9 @@ shift $((OPTIND-1))
 : ${BINARY_POSTFIX:=}
 : ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
 : ${DATA_DIR:=~/.ethereum}
-: ${CONTRACT_BIN_FILE:=contract.bin}
-#: ${CONTRACT_BIN:=}
-: ${SPAM_DATA_SIGNAL:=}
+: ${CONTRACT_BIN_FILE:=nexty.bin}
+: ${CONTRACT_BIN:=`cat $CONTRACT_BIN_FILE`}
+#: ${SPAM_DATA_SIGNAL:=666666}
 
 OUTPUT_TYPE=table
 
@@ -87,13 +87,6 @@ function new_address {
 	done < <($ETHKEY generate random)
 }
 
-function send_tx {
-	FROM=$1
-	TO=$2
-	AMOUNT=$3
-	ETHEREAL tx send --from=$FROM --to=$TO --privatekey=KEYS[$addr] --amount=$SPLIT
-}
-
 # spam FROM N
 function spam {
 	FROM=${1:-$PREFUND_ADDR}
@@ -103,17 +96,18 @@ function spam {
 
 	KEY=${KEYS[$FROM]}
 	BALANCE=`$ETHEREAL eth balance --address=$FROM`
+	BALANCE=${BALANCE% *}
 	BALANCE=${BALANCE%.*}
-	SPLIT=${BALANCE:0:-2}
+	SPLIT=${BALANCE:0:-3}
 	NONCE=`$ETHEREAL acc nonce --address=$FROM`
-	j=0
-	while [ $j -lt 99 ]; do
+	j=1
+	while [ $j -lt 256 ]; do
 		PAIR=(`new_key_pair`)
 		TO=${PAIR[0]}
 		KEYS[$TO]=${PAIR[1]}
 		(
-			echo "	${FROM:0:6} -> ${TO:0:6}"
-			$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT --nonce=$((NONCE+j)) #--data=$DATA
+			echo "	${FROM:0:6} -> ${TO:0:6}: ${SPLIT}"
+			$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=${SPLIT}ether --nonce=$((NONCE+j)) #--data=$DATA
 		) &
 		let j=j+1
 	done
@@ -122,24 +116,60 @@ function spam {
 	echo ====================== ${#KEYS[@]} ===========================
 	sleep 4s
 
+	i=0
 	for FROM in "${!KEYS[@]}"
 	do
 		KEY=${KEYS[$FROM]}
 		(
-			BALANCE=`$ETHEREAL eth balance --address=$FROM`
-			BALANCE=${BALANCE%.*}
-			SPLIT=${BALANCE:0:-3}
-			TO=`new_address`
-			echo "	${FROM:0:6} -> ${TO:0:6}"
-			#$ETHEREAL --repeat=1000 contract deploy --from=$FROM --privatekey=$KEY --data=$CONTRACT_BIN_FILE #--quiet
-			CMD="$ETHEREAL --repeat=1000 tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT"
-			if [ "$FROM" = "$PREFUND_ADDR" ]; then
-				CMD="$CMD --data=$SPAM_DATA_SIGNAL"
-			else
-				CMD="$CMD --data=$SPAM_DATA_SIGNAL$DATA"
-			fi
-			$CMD #--quiet
+			j=0
+			while [ $j -lt 100 ]; do
+				BALANCE=
+				while [ -z "$BALANCE" ]; do
+					BALANCE=`$ETHEREAL eth balance --address=$FROM`
+					BALANCE=${BALANCE% *}
+					if [ -z "$BALANCE" ]; then
+						echo "Unable to get balance of account: ${FROM:0:6}" >&2
+						exit
+					elif [ "$BALANCE" = "0" ]; then
+						BALANCE=
+						sleep 1s
+					fi
+				done
+				ROUND=${BALANCE%\.*}
+				if [ "${#ROUND}" -eq 1 ] && [ "$ROUND" -eq 0 ]; then
+					echo "Balance to small ($BALANCE), account: ${FROM:0:6}" >&2
+					exit
+				fi
+
+				PAIR=(`new_key_pair`)
+				TO=${PAIR[0]}
+				echo "	${FROM:0:6} -> ${TO:0:6}: $BALANCE"
+				$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=${ROUND:0:-1}ether --quiet
+
+				REPEAT=80
+				if [ $j -eq 0 ]; then
+					WIGGLE=`shuf -i 0-$REPEAT -n 1`
+					((REPEAT=REPEAT+WIGGLE))
+				fi
+				SPLIT=0 #${ROUND:0:-3}ether
+				CMD="$ETHEREAL --repeat=$REPEAT tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=${SPLIT}"
+				if [ "$i" -lt 10 ]; then
+					CMD="$ETHEREAL --repeat=$REPEAT contract deploy --from=$FROM --privatekey=$KEY --data=$CONTRACT_BIN"
+				elif  [ "$i" -lt 20 ]; then
+					if [ ! -z "$SPAM_DATA_SIGNAL" ]; then
+						CMD="$CMD --data=$SPAM_DATA_SIGNAL"
+					fi
+				else
+					CMD="$CMD --data=${SPAM_DATA_SIGNAL}${DATA}"
+				fi
+				$CMD --quiet
+
+				let j=j+1
+				FROM=$TO
+				KEY=${PAIR[1]}
+			done
 		) &
+		let i=i+1
 	done
 
 	read  -n 1 -p "Press enter to stop."
