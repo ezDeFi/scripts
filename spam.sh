@@ -33,8 +33,8 @@ shift $((OPTIND-1))
 : ${CONTRACT_BIN:=`cat $CONTRACT_BIN_FILE`}
 #: ${SPAM_DATA_SIGNAL:=666666}
 : ${GAS_PRICE:=9000000000}
-: ${IPS:=(18.191.160.71 18.224.39.130 52.43.241.206 52.53.177.205 54.183.206.45 54.201.181.84 54.215.213.102)}
-: ${THREAD_PER_IP:=2}
+: ${THREAD_PER_IP:=10}
+IPS=(18.191.160.71 18.224.39.130 52.43.241.206 52.53.177.205 54.183.206.45 54.201.181.84 54.215.213.102)
 
 OUTPUT_TYPE=table
 
@@ -118,33 +118,30 @@ function spam2 {
 			let j=i%THREAD_PER_IP
 			SUBLISTS[$j]="${SUBLISTS[$j]} $ADDR"
 			let i=i+1
-		done 
+		done
 
 		ENDPOINT=http://$IP:8545
-		echo "	${ENDPOINT:7:-5}: $LIST"
+		REPEAT=100
+		SPLIT=1
 
-		for SUBLIST in ${SUBLISTS[@]}; do
-			echo "$SUBLIST" @ $IP
+		for SUBLIST in "${SUBLISTS[@]}"; do
+			echo "	$IP @ $SUBLIST"
 			(
 				while true; do
-					i=0
 					for FROM in $SUBLIST; do
 						KEY=${KEYS[$FROM]}
 						TO=$FROM
-						REPEAT=100
-						SPLIT=1
 						CMD="$ETHEREAL --repeat=$REPEAT tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=${SPLIT} --connection=$ENDPOINT --gasprice=$GAS_PRICE"
-						if [ "$i" -lt 2 ]; then
+						if [ $((RANDOM%10)) -lt 4 ]; then
 							CMD="$ETHEREAL --repeat=$REPEAT contract deploy --from=$FROM --privatekey=$KEY --data=$CONTRACT_BIN --connection=$ENDPOINT"
-						elif  [ "$i" -lt 4 ]; then
+						elif  [ $((RANDOM%10)) -lt 6 ]; then
 							if [ ! -z "$SPAM_DATA_SIGNAL" ]; then
 								CMD="$CMD --data=$SPAM_DATA_SIGNAL"
 							fi
 						else
 							CMD="$CMD --data=${SPAM_DATA_SIGNAL}${DATA}"
 						fi
-						$CMD --quiet && echo "		${FROM:0:6}"
-						let i=i+1
+						$CMD >/dev/null || echo "	Failed command: ${CMD:0:100}"
 					done
 				done
 			) &
