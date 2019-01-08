@@ -60,7 +60,7 @@ ETHKEY_CMD=`which ethkey`
 GETH_CMD=`which geth`
 PUPPETH_CMD=`which puppeth`
 BOOTNODE_CMD=`which bootnode`
-GETH_CMD=$GETH_CMD --datadir="$DATA_DIR"
+GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
 GETH="$GETH_CMD --syncmode=full --cache 2048 --gcmode=archive --networkid $NETWORK_ID --rpc --rpcapi db,eth,net,web3,personal --rpccorsdomain \"*\" --rpcaddr 0.0.0.0 --gasprice 0 --targetgaslimit 42000000 --txpool.nolocals --txpool.pricelimit 0"
 
 function trim {

@@ -29,6 +29,8 @@ shift $((OPTIND-1))
 : ${BINARY_POSTFIX:=}
 : ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
 : ${DATA_DIR:=~/.ethereum}
+: ${CONTRACT_BIN_FILE:=contract.bin}
+#: ${CONTRACT_BIN:=}
 
 OUTPUT_TYPE=table
 
@@ -38,7 +40,6 @@ declare -A KEYS
 KEYS=(
 	[$PREFUND_ADDR]=cd4bdb10b75e803d621f64cc22bffdfc5c4b9f8e63e67820cc27811664d43794
 )
-declare -A BALANCES
 
 # COMMAND SHORTCUTS
 : ${GETH_CMD:=./build/bin/geth$BINARY_POSTFIX}
@@ -111,7 +112,7 @@ function spam {
 		KEYS[$TO]=${PAIR[1]}
 		(
 			echo "	${FROM:0:6} -> ${TO:0:6}"
-			$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT --nonce=$((NONCE+j)) --quiet #--data=$DATA
+			$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT --nonce=$((NONCE+j)) #--data=$DATA
 		) &
 		let j=j+1
 	done
@@ -127,14 +128,14 @@ function spam {
 			BALANCE=`$ETHEREAL eth balance --address=$FROM`
 			BALANCE=${BALANCE%.*}
 			SPLIT=${BALANCE:0:-3}
-			NONCE=`$ETHEREAL acc nonce --address=$FROM`
-			j=0
 			TO=`new_address`
 			echo "	${FROM:0:6} -> ${TO:0:6}"
-			while [ $j -lt 1000 ]; do
-				$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT --nonce=$((NONCE+j)) --quiet --data=$DATA
-				let j=j+1
-			done
+			#$ETHEREAL --repeat=1000 contract deploy --from=$FROM --privatekey=$KEY --data=$CONTRACT_BIN_FILE #--quiet
+			CMD="$ETHEREAL --repeat=1000 tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT"
+			if [ "$FROM" != "$PREFUND_ADDR" ]; then
+				CMD="$CMD --data=$DATA"
+			fi
+			$CMD #--quiet
 		) &
 	done
 
