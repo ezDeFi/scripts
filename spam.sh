@@ -31,6 +31,7 @@ shift $((OPTIND-1))
 : ${DATA_DIR:=~/.ethereum}
 : ${CONTRACT_BIN_FILE:=contract.bin}
 #: ${CONTRACT_BIN:=}
+: ${SPAM_DATA_SIGNAL:=}
 
 OUTPUT_TYPE=table
 
@@ -132,8 +133,10 @@ function spam {
 			echo "	${FROM:0:6} -> ${TO:0:6}"
 			#$ETHEREAL --repeat=1000 contract deploy --from=$FROM --privatekey=$KEY --data=$CONTRACT_BIN_FILE #--quiet
 			CMD="$ETHEREAL --repeat=1000 tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT"
-			if [ "$FROM" != "$PREFUND_ADDR" ]; then
-				CMD="$CMD --data=$DATA"
+			if [ "$FROM" = "$PREFUND_ADDR" ]; then
+				CMD="$CMD --data=$SPAM_DATA_SIGNAL"
+			else
+				CMD="$CMD --data=$SPAM_DATA_SIGNAL$DATA"
 			fi
 			$CMD #--quiet
 		) &
