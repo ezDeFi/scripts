@@ -9,13 +9,17 @@
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
 # Initialize our own variables:
+OPT_PREFUND=
 
-while getopts "h?" opt; do
+while getopts "h?p" opt; do
     case "$opt" in
     h|\?)
         echo "$(basename ""$0"") [-h|-?] command"
         exit 0
         ;;
+	p)
+		OPT_PREFUND=1
+		;;
     esac
 done
 
@@ -32,10 +36,12 @@ shift $((OPTIND-1))
 : ${CONTRACT_BIN_FILE:=nexty.bin}
 : ${CONTRACT_BIN:=`cat $CONTRACT_BIN_FILE`}
 #: ${SPAM_DATA_SIGNAL:=666666}
-: ${GAS_PRICE:=9000000000}
+: ${GAS_PRICE:=0}
 : ${THREAD_PER_IP:=10}
 : ${IP_LIST:=18.191.160.71 18.224.39.130 52.43.241.206 52.53.177.205 54.183.206.45 54.201.181.84 54.215.213.102}
 IPS=($IP_LIST)
+IPS_IDX=(${!IPS[@]})
+IPS_LEN=${#IPS[@]}
 
 OUTPUT_TYPE=table
 
@@ -49,9 +55,9 @@ echo "${#KEYS[@]} keys loaded."
 : ${GETH_CMD:=./build/bin/geth$BINARY_POSTFIX}
 : ${PUPPETH_CMD:=./build/bin/puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=./build/bin/bootnode$BINARY_POSTFIX}
-ETHKEY_CMD=`which ethkey`
+ETHKEY_CMD=ethkey
 ETHKEY="$ETHKEY_CMD"
-ETHEREAL_CMD=`which ethereal`
+ETHEREAL_CMD=ethereal
 ETHEREAL="$ETHEREAL_CMD"
 #ETHEREAL="$ETHEREAL_CMD --connection=http://localhost:8545/"
 
@@ -93,26 +99,42 @@ function new_address {
 	done < <($ETHKEY generate random)
 }
 
+function prefund {
+	IP=${IPS[${IPS_IDX[0]}]}
+	ENDPOINT=http://$IP:8545
+	FROM=${1:-$PREFUND_ADDR}
+	KEY=${KEYS[$FROM]}
+	BALANCE=`$ETHEREAL eth balance --wei --address=$FROM --connection=$ENDPOINT`
+	SPLIT=${BALANCE:0:-3}
+	NONCE=`$ETHEREAL acc nonce --address=$FROM --connection=$ENDPOINT`
+	for TO in "${!KEYS[@]}"; do
+		CMD="$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT --nonce=$NONCE  --connection=$ENDPOINT"
+		$CMD >/dev/null || echo "	Failed command ($?): ${CMD:0:100}"
+		let NONCE=NONCE+1
+	done
+}
+
 function spam2 {
+	DATA=`random_hex`
 	declare -A LISTS
-	LISTS=()
 
-	IP_IDXS=(${!IPS[@]})
-	IP_N=${#IPS[@]}
+	if [ ! -z "$OPT_PREFUND" ]; then
+		prefund
+	fi
 
+	# Split the KEYS to each LISTS item for each IP
 	i=0
 	for FROM in "${!KEYS[@]}"; do
-		let j=i%IP_N
-		IP=${IPS[${IP_IDXS[j]}]}
+		let j=i%IPS_LEN
+		IP=${IPS[${IPS_IDX[j]}]}
 		LISTS[$IP]="${LISTS[$IP]} $FROM"
 		let i=i+1
 	done
 
-	DATA=`random_hex`
-
 	for IP in "${!LISTS[@]}"; do
 		LIST=${LISTS[$IP]}
 
+		# Split the addresses to each sublist for each thread
 		SUBLISTS=()
 		i=0
 		for ADDR in $LIST; do
@@ -142,7 +164,7 @@ function spam2 {
 						else
 							CMD="$CMD --data=${SPAM_DATA_SIGNAL}${DATA}"
 						fi
-						$CMD >/dev/null || echo "	Failed command: ${CMD:0:100}"
+						$CMD >/dev/null || echo "	Failed command ($?): ${CMD:0:100}"
 					done
 				done
 			) &
