@@ -80,10 +80,10 @@ function bootnode {
 
 function load {
 	COUNT=${1:-1}
-	BOOTNODE_STRING=`bootnode`
+	#BOOTNODE_STRING=`bootnode`
 
 	rm -rf "$DATA_DIR"
-	start $ALL_IPs | tr "\n" " " | awk '{$1=$1};1'
+	deploy $ALL_IPs | tr "\n" " " | awk '{$1=$1};1'
 }
 
 function create_account {
@@ -157,21 +157,30 @@ function init_genesis {
 	echo $GENESIS_JSON
 }
 
-function geth_start {
-	$GETH_CMD init $@
+function start {
 	echo password >| /tmp/password
-	#nohup $GETH --bootnodes $BOOTNODE_STRING --mine --unlock 0 --password /tmp/password --ethstats $IP:$ETHSTATS &>./geth.log &
-	$GETH --bootnodes $BOOTNODE_STRING --mine --unlock 0 --password /tmp/password --ethstats $IP:$ETHSTATS
+	CMD="$GETH --mine --unlock=0 --password=/tmp/password --ethstats=$IP:$ETHSTATS"
+	if [ ! -z "$BOOTNODE_STRING" ]; then
+		CMD="$CMD --bootnodes $BOOTNODE_STRING"
+	fi
+	$CMD
+	#nohup $CMD #&>./geth.log
 	rm /tmp/password
 }
 
-function start {
+function init_geth {
+	$GETH_CMD init $@
+	start
+}
+
+function deploy {
 	IPs=($@)
 	ACs=(`create_account ${IPs[@]}`)
 	
 	GENESIS_JSON=`init_genesis ${ACs[@]}`
 
-	geth_start $GENESIS_JSON
+	init_geth $GENESIS_JSON
+	start
 }
 
 function stop {
