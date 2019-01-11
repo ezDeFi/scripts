@@ -32,13 +32,14 @@ shift $((OPTIND-1))
 : ${NETWORK_ID:=50613}
 : ${BINARY_POSTFIX:=}
 : ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
+: ${PREFUND_KEY:=cd4bdb10b75e803d621f64cc22bffdfc5c4b9f8e63e67820cc27811664d43794}
 : ${DATA_DIR:=~/.ethereum}
 : ${CONTRACT_BIN_FILE:=nexty.bin}
 : ${CONTRACT_BIN:=`cat $CONTRACT_BIN_FILE`}
 #: ${SPAM_DATA_SIGNAL:=666666}
 : ${GAS_PRICE:=0}
 : ${THREAD_PER_IP:=10}
-: ${IP_LIST:=18.191.160.71 18.224.39.130 52.43.241.206 52.53.177.205 54.183.206.45 54.201.181.84 54.215.213.102}
+: ${IP_LIST:=`cat endpoints | tr '\r\n' ' '`}
 IPS=($IP_LIST)
 IPS_IDX=(${!IPS[@]})
 IPS_LEN=${#IPS[@]}
@@ -102,8 +103,8 @@ function new_address {
 function prefund {
 	IP=${IPS[${IPS_IDX[0]}]}
 	ENDPOINT=http://$IP:8545
-	FROM=${1:-$PREFUND_ADDR}
-	KEY=${KEYS[$FROM]}
+	FROM=$PREFUND_ADDR
+	KEY=$PREFUND_KEY
 	BALANCE=`$ETHEREAL eth balance --wei --address=$FROM --connection=$ENDPOINT`
 	SPLIT=${BALANCE:0:-3}
 	NONCE=`$ETHEREAL acc nonce --address=$FROM --connection=$ENDPOINT`
@@ -189,8 +190,8 @@ function spam {
 	# 	let j=j+1
 	# done
 
-	FROM=${1:-$PREFUND_ADDR}
-	KEY=${KEYS[$FROM]}
+	FROM=$PREFUND_ADDR
+	KEY=$PREFUND_KEY
 	BALANCE=`$ETHEREAL eth balance --wei --address=$FROM --connection=$ENDPOINT`
 	SPLIT=${BALANCE:0:-3}
 	NONCE=`$ETHEREAL acc nonce --address=$FROM --connection=$ENDPOINT`
