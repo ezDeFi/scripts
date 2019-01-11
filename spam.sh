@@ -108,11 +108,18 @@ function prefund {
 	BALANCE=`$ETHEREAL eth balance --wei --address=$FROM --connection=$ENDPOINT`
 	SPLIT=${BALANCE:0:-3}
 	NONCE=`$ETHEREAL acc nonce --address=$FROM --connection=$ENDPOINT`
+	i=0
 	for TO in "${!KEYS[@]}"; do
-		CMD="$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT --nonce=$NONCE  --connection=$ENDPOINT"
-		$CMD >/dev/null || echo "	Failed command ($?): ${CMD:0:100}"
-		let NONCE=NONCE+1
+		CMD="$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT --nonce=$((NONCE+i))  --connection=$ENDPOINT"
+		( $CMD >/dev/null || echo "	Failed command ($?): ${CMD:0:100}" ) &
+		let i=i+1
+		if [ $((i%100)) -eq 0 ]; then
+			echo "Funding 100 addresses.."
+			wait
+		fi
 	done
+	wait
+	echo "Done funding ${#KEYS[@]} addresses."
 }
 
 function spam2 {
