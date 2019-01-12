@@ -45,6 +45,7 @@ shift $((OPTIND-1))
 	# address: 000007e01c1507147a0e338db1d029559db6cb19
 : ${BLOCK_TIME:=2}
 : ${EPOCH:=90}
+: ${DCCS_BLOCK:=0}
 : ${DATA_DIR:=~/.ethereum}
 
 OUTPUT_TYPE=table
@@ -78,7 +79,7 @@ function bootnode {
 	echo enode://`$BOOTNODE_CMD -nodekey=boot.key -writeaddress`@127.0.0.1:33333
 }
 
-function load {
+function reload {
 	COUNT=${1:-1}
 	#BOOTNODE_STRING=`bootnode`
 
@@ -123,7 +124,7 @@ function generate_genesis {
 			echo $AC
 		done
 		echo
-		echo 0
+		echo $DCCS_BLOCK
 		echo $CONTRACT_ADDR
 		echo $PREFUND_ADDR
 		#for PFAC in "${PFACs[@]}"; do
@@ -170,7 +171,6 @@ function start {
 
 function init_geth {
 	$GETH_CMD init $@
-	start
 }
 
 function deploy {

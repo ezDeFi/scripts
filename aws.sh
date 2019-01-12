@@ -68,6 +68,7 @@ INSTANCES=(
 : ${CONTRACT_ADDR:=cafecafecafecafecafecafecafecafecafecafe}
 : ${BLOCK_TIME:=2}
 : ${EPOCH:=90}
+: ${DCCS_BLOCK:=0}
 : ${SSH_USER:=ubuntu}
 
 OUTPUT_TYPE=table
@@ -255,7 +256,7 @@ function generate_genesis {
 			echo $AC
 		done
 		echo
-		echo 0
+		echo $DCCS_BLOCK
 		echo $CONTRACT_ADDR
 		for PFAC in "${PFACs[@]}"; do
 			echo $PFAC
