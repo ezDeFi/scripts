@@ -66,6 +66,7 @@ INSTANCES=(
 : ${BOOTNODE_INSTANCE_TYPE:=t3.micro}
 : ${ETHSTATS:=nexty-testnet@198.13.40.85:80}
 : ${CONTRACT_ADDR:=cafecafecafecafecafecafecafecafecafecafe}
+: ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
 : ${BLOCK_TIME:=2}
 : ${EPOCH:=90}
 : ${DCCS_BLOCK:=0}
@@ -258,6 +259,7 @@ function generate_genesis {
 		echo
 		echo $DCCS_BLOCK
 		echo $CONTRACT_ADDR
+		echo $PREFUND_ADDR
 		for PFAC in "${PFACs[@]}"; do
 			echo $PFAC
 		done
