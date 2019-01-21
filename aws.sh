@@ -126,7 +126,7 @@ function instance_ip {
 }
 
 function ssh_ready {
-	# Probe SSH connection until it's avalable 
+	# Probe SSH connection until it's available 
 	X_READY=''
 	while [ ! $X_READY ]; do
 		sleep 1s
