@@ -62,6 +62,7 @@ INSTANCES=(
 	[us-east-1]=$DEFAULT_INSTANCE_TYPE
 )
 : ${KEY_NAME:=DevOp}
+: ${KEY_LOCATION:=~/.ssh/devop}
 : ${BOOTNODE_REGION:=ap-southeast-1}
 : ${BOOTNODE_INSTANCE_TYPE:=t3.micro}
 : ${ETHSTATS:=nexty-testnet@198.13.40.85:80}
@@ -89,10 +90,10 @@ fi
 : ${GETH_CMD:=geth$BINARY_POSTFIX}
 : ${PUPPETH_CMD:=puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=bootnode$BINARY_POSTFIX}
-SSH="ssh -oStrictHostKeyChecking=no -oBatchMode=yes"
-SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes"
-PSCP="$PSCP_CMD -OStrictHostKeyChecking=no -OBatchMode=yes"
-SSH_COPY_ID="ssh-copy-id -f"
+SSH="ssh -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION"
+SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION"
+PSCP="$PSCP_CMD -OStrictHostKeyChecking=no -OBatchMode=yes -x-i$KEY_LOCATION"
+SSH_COPY_ID="ssh-copy-id -i$KEY_LOCATION -f"
 GETH="./$GETH_CMD --syncmode full --cache 2048 --gcmode=archive --networkid $NETWORK_ID --rpc --rpcapi db,eth,net,web3,personal --rpccorsdomain \"*\" --rpcaddr 0.0.0.0 --gasprice 0 --targetgaslimit 42000000 --txpool.nolocals --txpool.pricelimit 0"
 
 function trim {
