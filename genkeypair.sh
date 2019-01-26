@@ -1,5 +1,7 @@
 #!/bin/bash
 
+: ${ETHKEY:=ethkey}
+
 function new_key_pair {
 	while read -r line; do
 		if [ ${line:0:6} = secret ]; then
@@ -10,3 +12,7 @@ function new_key_pair {
 	done < <($ETHKEY generate random)
 	echo [$addr]=$key
 }
+
+for i in `seq 1 $1`; do
+	new_key_pair
+done
