@@ -110,7 +110,7 @@ function prefund {
 	NONCE=`$ETHEREAL acc nonce --address=$FROM --connection=$ENDPOINT`
 	i=0
 	for TO in "${!KEYS[@]}"; do
-		CMD="$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT --nonce=$((NONCE+i))  --connection=$ENDPOINT"
+		CMD="$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT --nonce=$((NONCE+i)) --connection=$ENDPOINT"
 		( $CMD >/dev/null || echo "	Failed command ($?): ${CMD:0:100}" ) &
 		let i=i+1
 		if [ $((i%100)) -eq 0 ]; then
