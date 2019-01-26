@@ -59,7 +59,7 @@ echo "${#KEYS[@]} keys loaded."
 ETHKEY_CMD=ethkey
 ETHKEY="$ETHKEY_CMD"
 ETHEREAL_CMD=ethereal
-ETHEREAL="$ETHEREAL_CMD"
+ETHEREAL="$ETHEREAL_CMD --log=/dev/null"
 #ETHEREAL="$ETHEREAL_CMD --connection=http://localhost:8545/"
 
 function trim {
