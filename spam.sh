@@ -122,7 +122,7 @@ function prefund {
 	echo "Done funding ${#KEYS[@]} addresses."
 }
 
-function spam2 {
+function spam {
 	DATA=`random_hex`
 	declare -A LISTS
 
@@ -179,89 +179,18 @@ function spam2 {
 		done
 	done
 
+	# trap ctrl-c and call ctrl_c()
+	trap clean_up SIGTERM SIGINT SIGKILL
+	# wait for any key
 	read  -n 1 -p "Press enter to stop..."
 	kill $(jobs -p)
 	kill -9 $(jobs -p)
+	#clean_up
 }
 
-# spam FROM N
-function spam {
-	DATA=`random_hex`
-	ENDPOINT=`random_endpoint`
-
-	# j=1
-	# while [ $j -lt 300 ]; do
-	# 	PAIR=(`new_key_pair`)
-	# 	TO=${PAIR[0]}
-	# 	KEYS[$TO]=${PAIR[1]}
-	# 	let j=j+1
-	# done
-
-	FROM=$PREFUND_ADDR
-	KEY=$PREFUND_KEY
-	BALANCE=`$ETHEREAL eth balance --wei --address=$FROM --connection=$ENDPOINT`
-	SPLIT=${BALANCE:0:-3}
-	NONCE=`$ETHEREAL acc nonce --address=$FROM --connection=$ENDPOINT`
-	# for TO in "${!KEYS[@]}"; do
-	# 	$ETHEREAL tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=$SPLIT --nonce=$NONCE  --connection=$ENDPOINT
-	# 	echo "	${FROM:0:6} -> ${TO:0:6}: ${SPLIT}"
-	# 	let NONCE=NONCE+1
-	# done
-
-	echo ====================== ${#KEYS[@]} ===========================
-
-	(
-	j=0
-	while true; do
-		i=0
-		for FROM in "${!KEYS[@]}"; do
-			ENDPOINT=`random_endpoint`
-
-			# BALANCE=`$ETHEREAL eth balance --wei --address=$FROM --connection=$ENDPOINT`
-			# if [ -z "$BALANCE" ]; then
-			# 	echo "Unable to get balance of account: ${FROM:0:6}" >&2
-			# 	continue
-			# elif [ "$BALANCE" = "0" ]; then
-			# 	echo "Zero balance account: ${FROM:0:6}" >&2
-			# 	continue
-			# fi
-
-			# ROUND=$BALANCE
-			# if [ "${#ROUND}" -eq 1 ] && [ "$ROUND" -eq 0 ]; then
-			# 	echo "Balance to small ($BALANCE), account: ${FROM:0:6}" >&2
-			# 	exit
-			# fi
-			echo "	${FROM:0:6} <-> ${BALANCE} @ ${ENDPOINT:7:-5}"
-
-			KEY=${KEYS[$FROM]}
-			TO=$FROM
-			REPEAT=100
-			# if [ $j -eq 0 ]; then
-			# 	WIGGLE=`shuf -i 0-$REPEAT -n 1`
-			# 	((REPEAT=REPEAT+WIGGLE+1000))
-			# fi
-			SPLIT=0 #${ROUND:0:-2}ether
-			CMD="$ETHEREAL --repeat=$REPEAT tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=${SPLIT} --connection=$ENDPOINT --gasprice=9000000000"
-			if [ "$i" -lt 10 ]; then
-				CMD="$ETHEREAL --repeat=$REPEAT contract deploy --from=$FROM --privatekey=$KEY --data=$CONTRACT_BIN --connection=$ENDPOINT"
-			elif  [ "$i" -lt 50 ]; then
-				if [ ! -z "$SPAM_DATA_SIGNAL" ]; then
-					CMD="$CMD --data=$SPAM_DATA_SIGNAL"
-				fi
-			else
-				CMD="$CMD --data=${SPAM_DATA_SIGNAL}${DATA}"
-			fi
-			nohup $CMD &>/dev/null &disown
-			#--quiet
-
-			let i=i+1
-		done
-		let j=j+1
-	done ) &
-
-	read  -n 1 -p "Press enter to stop..."
-	kill $(jobs -p)
-	kill -9 $(jobs -p)
+function clean_up() {
+	echo "** Cleaning up **"
+	killall "$(basename ""$0"")" ethereal
 }
 
-spam2 "$@"
+spam "$@"
