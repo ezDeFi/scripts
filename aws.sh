@@ -127,6 +127,7 @@ function instance_ip {
 }
 
 function ssh_ready {
+	(	set +x
 	# Probe SSH connection until it's available 
 	X_READY=''
 	while [ ! $X_READY ]; do
@@ -136,6 +137,7 @@ function ssh_ready {
 		[[ $? = 0 ]] && X_READY='ready'
 		set -e
 	done 
+	)
 }
 
 function bootnode {
