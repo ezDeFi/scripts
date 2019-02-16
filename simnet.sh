@@ -116,7 +116,8 @@ function generate_genesis {
 	ACs=($@)
 	#PFACs=(`load_pre_fund_accounts`)
 
-	(	echo 2
+	(	set +x
+		echo 2
 		echo 1
 		echo 3
 		echo $BLOCK_TIME
