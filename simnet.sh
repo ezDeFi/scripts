@@ -125,7 +125,8 @@ function generate_genesis {
 			echo $AC
 		done
 		echo
-		echo $DCCS_BLOCK
+		echo $THANGLONG_BLOCK
+		echo $THANGLONG_EPOCH
 		echo $CONTRACT_ADDR
 		echo $PREFUND_ADDR
 		#for PFAC in "${PFACs[@]}"; do
