@@ -232,7 +232,8 @@ function create_account {
 }
 
 # load pre-fund account from keystore folder
-function load_pre_fund_accounts {
+function load_pre_fund_accounts {(
+	set +x
 	arr=()
 	for file in ./.gonex/keystore/UTC--*; do
 		if [[ -f $file ]]; then
@@ -241,7 +242,7 @@ function load_pre_fund_accounts {
 		fi
 	done
 	echo "${arr[@]}"
-}
+)}
 
 function test_load_pre_fund_accounts {
 	echo `load_pre_fund_accounts`
@@ -252,7 +253,8 @@ function generate_genesis {
 	ACs=($@)
 	PFACs=(`load_pre_fund_accounts`)
 
-	(	echo 2
+	(	set +x
+		echo 2
 		echo 1
 		echo 3
 		echo $BLOCK_TIME
