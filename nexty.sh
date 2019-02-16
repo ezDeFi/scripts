@@ -50,7 +50,7 @@ GETH="./$GETH_CMD --syncmode full --cache 2048 --gcmode=archive --rpc --rpcapi d
 function stop {
 	test $# -ne 0 && IP_LIST="$@"
 
-	for IP in "$IP_LIST"
+	for IP in $IP_LIST
 	do
 		$SSH $SSH_USER@$IP killall -q --signal SIGINT $GETH_CMD &
 	done
