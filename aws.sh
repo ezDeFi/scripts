@@ -199,7 +199,7 @@ function load {
 
 	ALL_IPs=`cat /tmp/aws.sh/ips/* | tr "\n" " "`
 
-	deploy $ALL_IPs &&\
+	deploy $ALL_IPs
 	start $ALL_IPs | tr "\n" " " | awk '{$1=$1};1'
 	wait
 
