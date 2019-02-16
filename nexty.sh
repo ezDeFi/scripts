@@ -120,7 +120,44 @@ function clear {
 	wait
 }
 
+function get_acc {
+	IP=$1
+	ACC=`$SSH $SSH_USER@$IP "./$GETH_CMD account list" 2>/dev/null | grep 'Account #0:'`
+	if [ -z "$ACC" ]; then
+		return
+	fi
+	ACC=${ACC##*\{}
+	ACC=${ACC%%\}*}
+	echo $ACC
+}
+
 # create IP IP ..
+function create {
+	test $# -ne 0 && IP_LIST="$@"
+
+	for IP in $IP_LIST
+	do
+		ACC=`get_acc $IP`
+		if [ ! -z "$ACC" ]; then
+			echo "Node $IP already has an account:"
+			echo "	Account:	"$ACC
+			continue
+		fi
+		echo "About to create a new account in $IP with:"
+		read -s -p "	Keystore password: " PASS
+		if [ ! -z $PASS ]; then
+			PASSWORD=$PASS
+		fi
+
+		ACC=`$SSH $SSH_USER@$IP "./$GETH_CMD account new --password <(echo $PASSWORD)"`
+		ACC=${ACC##*\{}
+		ACC=${ACC%%\}*}
+		echo "	Account:	"$ACC
+	done
+	wait
+}
+
+# init IP IP ..
 function init {
 	test $# -ne 0 && IP_LIST="$@"
 
