@@ -303,6 +303,7 @@ function geth_start {
 	for IP in "${IPs[@]}"; do
 		(	$SSH $SSH_USER@$IP "./$GETH_CMD init *.json"
 			$SSH $SSH_USER@$IP "nohup $GETH --bootnodes $BOOTNODE_STRING --mine --unlock 0 --password <(echo password) --ethstats $IP:$ETHSTATS &>./geth.log &"
+			$SSH $SSH_USER@$IP "printf \"$NETWORK_ID\" >| networkid.info; printf \"$BOOTNODE_STRING\" >| bootnode.info; printf \"$ETHSTATS\" > ethstats.info;"
 		) &
 	done
 	wait
