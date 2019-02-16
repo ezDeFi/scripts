@@ -96,7 +96,6 @@ function seal {
 	wait
 }
 
-
 # deploy IP IP ..
 function deploy {
 	test $# -ne 0 && IP_LIST="$@"
