@@ -108,4 +108,63 @@ function deploy {
 	wait
 }
 
+# clear IP IP ..
+function clear {
+	test $# -ne 0 && IP_LIST="$@"
+
+	echo "I don't want to live dangerously, please do it yourself by running the following command(s):"
+
+	for IP in $IP_LIST
+	do
+		echo $SSH $SSH_USER@$IP "rm -rf ~/.ethereum"
+	done
+	wait
+}
+
+# create IP IP ..
+function init {
+	test $# -ne 0 && IP_LIST="$@"
+
+	for IP in $IP_LIST
+	do
+		test -z $NETWORK_ID && NETWORK_ID=`$SSH $SSH_USER@$IP "cat ./networkid.info"`
+		test -z $NETWORK_ID && echo "Please set the NETWORK_ID env (export NETWORK_ID=66666)" && continue
+		test -z $BOOTNODE && BOOTNODE=`$SSH $SSH_USER@$IP "cat ./bootnode.info"`
+		test -z $BOOTNODE && echo "Please set the BOOTNODE env (export BOOTNODE=enode://...)" && continue
+		test -z $ETHSTATS && ETHSTATS=`$SSH $SSH_USER@$IP "cat ./ethstats.info"`
+		test -z $ETHSTATS && echo "Please set the ETHSTATS env (export ETHSTATS=ip:port)" && continue
+
+		ACC_LIST=`$SSH $SSH_USER@$IP "./$GETH_CMD account list" 2>/dev/null`
+		if grep --quiet 'Account #' <<< $ACC_LIST; then
+			ACC=`grep 'Account #0:' <<< $ACC_LIST`
+			ACC=${ACC##*\{}
+			ACC=${ACC%%\}*}
+
+			echo "Node $IP is already initialized with:"
+			echo "	NetworkID:	"$NETWORK_ID
+			echo "	Bootnode:	"$BOOTNODE
+			echo "	Ethstat:	"$ETHSTATS
+			echo "	Account:	"$ACC
+
+			continue
+		fi
+		echo "About to create a new account in $IP with:"
+		echo "	NetworkID:	"$NETWORK_ID
+		echo "	Bootnode:	"$BOOTNODE
+		echo "	Ethstat:	"$ETHSTATS
+		read -s -p "	Keystore password: " PASS
+		if [ ! -z $PASS ]; then
+			PASSWORD=$PASS
+		fi
+
+		ACC=`$SSH $SSH_USER@$IP "./$GETH_CMD account new --password <(echo $PASSWORD)"`
+		ACC=${ACC##*\{}
+		ACC=${ACC%%\}*}
+		echo "	Account:	"$ACC
+
+		$SSH $SSH_USER@$IP "printf \"$NETWORK_ID\" >| networkid.info; printf \"$BOOTNODE\" >| bootnode.info; printf \"$ETHSTATS\" > ethstats.info;"
+	done
+	wait
+}
+
 "$@"
