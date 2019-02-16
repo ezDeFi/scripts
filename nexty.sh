@@ -42,7 +42,7 @@ IPS_IDX=(${!IPS[@]})
 IPS_LEN=${#IPS[@]}
 
 # COMMAND SHORTCUTS
-: ${GETH_CMD_LOCATION:=./build/bin}
+: ${GETH_CMD_LOCATION:=../go?e*/build/bin}
 : ${GETH_CMD:=geth}
 GETH="./$GETH_CMD --syncmode full --cache 2048 --gcmode=archive --rpc --rpcapi db,eth,net,web3,personal --rpccorsdomain \"*\" --rpcaddr 0.0.0.0 --gasprice 0 --targetgaslimit 42000000 --txpool.nolocals --txpool.pricelimit 0"
 
@@ -92,6 +92,18 @@ function seal {
 		fi
 
 		$SSH $SSH_USER@$IP "nohup $GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE --mine --unlock 0 --password <(echo $PASSWORD) --ethstats $IP:$ETHSTATS &>>./geth.log &"
+	done
+	wait
+}
+
+
+# deploy IP IP ..
+function deploy {
+	test $# -ne 0 && IP_LIST="$@"
+
+	for IP in $IP_LIST
+	do
+		$SCP $GETH_CMD_LOCATION/$GETH_CMD $SSH_USER@$IP:./ &
 	done
 	wait
 }
