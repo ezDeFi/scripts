@@ -78,10 +78,22 @@ function seal {
 
 	for IP in $IP_LIST
 	do
+		ACC=`get_acc $IP`
+		if [ -z "$ACC" ]; then
+			echo "Node $IP doesn't have an account to seal"
+			return
+		fi
 		test -z $NETWORK_ID && NETWORK_ID=`$SSH $SSH_USER@$IP "cat ./networkid.info"`
 		test -z $BOOTNODE && BOOTNODE=`$SSH $SSH_USER@$IP "cat ./bootnode.info"`
 		test -z $ETHSTATS && ETHSTATS=`$SSH $SSH_USER@$IP "cat ./ethstats.info"`
+	done
 
+	test -z $NETWORK_ID && echo "Please set the NETWORK_ID env (export NETWORK_ID=66666)" && return
+	test -z $BOOTNODE && echo "Please set the BOOTNODE env (export BOOTNODE=enode://...)" && return
+	test -z $ETHSTATS && echo "Please set the ETHSTATS env (export ETHSTATS=ip:port)" && return
+
+	for IP in $IP_LIST
+	do
 		echo "About to run sealer in $IP with:"
 		echo "	NetworkID:	"$NETWORK_ID
 		echo "	Bootnode:	"$BOOTNODE
