@@ -68,6 +68,7 @@ INSTANCES=(
 : ${ETHSTATS:=nexty-devnet@198.13.40.85:8080}
 : ${STAKE_REQUIRE:=100}
 : ${STAKE_LOCK_HEIGHT:=150}
+: ${TOKEN_OWNER:=0x000000270840d8ebdffc7d162193cc5ba1ad8707}
 : ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
 : ${BLOCK_TIME:=2}
 : ${EPOCH:=10}
@@ -269,6 +270,7 @@ function generate_genesis {
 		echo $CONTRACT_ADDR
 		echo $STAKE_REQUIRE
 		echo $STAKE_LOCK_HEIGHT
+		echo $TOKEN_OWNER
 		echo $PREFUND_ADDR
 		for PFAC in "${PFACs[@]}"; do
 			echo $PFAC
