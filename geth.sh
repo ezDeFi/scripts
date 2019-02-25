@@ -63,7 +63,7 @@ function node {
 
 	for IP in $IP_LIST
 	do (
-		test -z $NETWORK_ID && BOOTNODE=`$SSH $SSH_USER@$IP "cat ./networkid.info"`
+		test -z $NETWORK_ID && NETWORK_ID=`$SSH $SSH_USER@$IP "cat ./networkid.info"`
 		test -z $BOOTNODE && BOOTNODE=`$SSH $SSH_USER@$IP "cat ./bootnode.info"`
 
 		$SSH $SSH_USER@$IP "nohup $GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE &>>./geth.log &"
