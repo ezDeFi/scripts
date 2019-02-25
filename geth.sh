@@ -231,6 +231,42 @@ function import {
 	wait
 }
 
+# export IP IP ..
+function export {
+	test $# -ne 0 && IP_LIST="$@"
+
+	ETHEREAL=`command -v ethereal`
+	if [ -z $ETHEREAL ]; then
+		echo "etheral not installed"
+		return
+	fi
+
+	for IP in $IP_LIST
+	do
+		ACC=`get_acc $IP`
+		if [ -z "$ACC" ]; then
+			echo "Node $IP doesn't have an account to export"
+			return
+		fi
+
+		if ! $SSH $SSH_USER@$IP stat ethereal \> /dev/null 2\>\&1; then
+			$SCP "$ETHEREAL" $SSH_USER@$IP:./
+		fi
+
+		echo "About to export a keys from $IP:"
+		if [ -z $PASSWORD ]; then
+			read -s -p "	Keystore password: " PASS
+			if [ ! -z $PASS ]; then
+				PASSWORD=$PASS
+			fi
+			echo
+		fi
+
+		$SSH $SSH_USER@$IP "./ethereal account keys --passphrase=$PASSWORD --address=$ACC"
+	done
+	wait
+}
+
 # init IP IP ..
 function init {
 	test $# -ne 0 && IP_LIST="$@"
