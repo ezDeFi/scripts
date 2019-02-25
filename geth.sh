@@ -127,7 +127,7 @@ function clear {
 
 	for IP in $IP_LIST
 	do
-		echo $SSH $SSH_USER@$IP "rm -rf ~/.ethereum"
+		echo $SSH $SSH_USER@$IP "rm -rf ./.ethereum"
 	done
 	wait
 }
