@@ -122,9 +122,11 @@ function seal {
 		echo "	NetworkID:	"$NETWORK_ID
 		echo "	Bootnode:	"$BOOTNODE
 		echo "	Ethstat:	"$ETHSTATS
-		read -s -p "	Keystore password: " PASS
-		if [ ! -z $PASS ]; then
-			PASSWORD=$PASS
+		if [ -z $PASSWORD ]; then
+			read -s -p "	Keystore password: " PASS
+			if [ ! -z $PASS ]; then
+				PASSWORD=$PASS
+			fi
 		fi
 
 		$SSH $SSH_USER@$IP "nohup $GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE --mine --unlock 0 --password <(echo $PASSWORD) --ethstats $IP:$ETHSTATS &>>./geth.log &"
@@ -180,9 +182,11 @@ function create {
 			continue
 		fi
 		echo "About to create a new account in $IP with:"
-		read -s -p "	Keystore password: " PASS
-		if [ ! -z $PASS ]; then
-			PASSWORD=$PASS
+		if [ -z $PASSWORD ]; then
+			read -s -p "	Keystore password: " PASS
+			if [ ! -z $PASS ]; then
+				PASSWORD=$PASS
+			fi
 		fi
 
 		ACC=`$SSH $SSH_USER@$IP "./$GETH_CMD account new --password <(echo $PASSWORD)"`
@@ -206,11 +210,13 @@ function import {
 			continue
 		fi
 		echo "About to import a new private key into $IP with:"
-		read -s -p "	Keystore password: " PASS
-		if [ ! -z $PASS ]; then
-			PASSWORD=$PASS
+		if [ -z $PASSWORD ]; then
+			read -s -p "	Keystore password: " PASS
+			if [ ! -z $PASS ]; then
+				PASSWORD=$PASS
+			fi
+			echo
 		fi
-		echo
 
 		read -s -p "	New Private Key: " SKEY
 		if [ ! -z $SKEY ]; then
@@ -256,9 +262,11 @@ function init {
 		echo "	NetworkID:	"$NETWORK_ID
 		echo "	Bootnode:	"$BOOTNODE
 		echo "	Ethstat:	"$ETHSTATS
-		read -s -p "	Keystore password: " PASS
-		if [ ! -z $PASS ]; then
-			PASSWORD=$PASS
+		if [ -z $PASSWORD ]; then
+			read -s -p "	Keystore password: " PASS
+			if [ ! -z $PASS ]; then
+				PASSWORD=$PASS
+			fi
 		fi
 
 		ACC=`$SSH $SSH_USER@$IP "./$GETH_CMD account new --password <(echo $PASSWORD)"`
