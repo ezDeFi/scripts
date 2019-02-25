@@ -169,6 +169,38 @@ function create {
 	wait
 }
 
+# import IP IP ..
+function import {
+	test $# -ne 0 && IP_LIST="$@"
+
+	for IP in $IP_LIST
+	do
+		ACC=`get_acc $IP`
+		if [ ! -z "$ACC" ]; then
+			echo "Node $IP already has an account:"
+			echo "	Account:	"$ACC
+			continue
+		fi
+		echo "About to import a new private key into $IP with:"
+		read -s -p "	Keystore password: " PASS
+		if [ ! -z $PASS ]; then
+			PASSWORD=$PASS
+		fi
+		echo
+
+		read -s -p "	New Private Key: " SKEY
+		if [ ! -z $SKEY ]; then
+			PRVKEY=$SKEY
+		fi
+
+		ACC=`$SSH $SSH_USER@$IP "./$GETH_CMD account import --password <(echo $PASSWORD) <(echo $PRVKEY)"`
+		ACC=${ACC##*\{}
+		ACC=${ACC%%\}*}
+		echo "	Account:	"$ACC
+	done
+	wait
+}
+
 # init IP IP ..
 function init {
 	test $# -ne 0 && IP_LIST="$@"
