@@ -37,8 +37,8 @@ shift $((OPTIND-1))
 : ${NETWORK_NAME:=simnet}
 : ${NETWORK_ID:=50613}
 : ${BINARY_POSTFIX:=}
-: ${ETHSTATS:=nexty-testnet@198.13.40.85:80}
-: ${CONTRACT_ADDR:=cafecafecafecafecafecafecafecafecafecafe}
+: ${STAKE_REQUIRE:=100}
+: ${STAKE_LOCK_HEIGHT:=150}
 : ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
 	# private: cd4bdb10b75e803d621f64cc22bffdfc5c4b9f8e63e67820cc27811664d43794
 	# public:  a83433c26792c93eb56269976cffeb889636ff3f6193b60793fa98c74d9ccdbf4e3a80e2da6b86712e014441828520333828ac4f4605b5d0a8af544f1c5ca67e
@@ -130,6 +130,8 @@ function generate_genesis {
 		echo $THANGLONG_BLOCK
 		echo $THANGLONG_EPOCH
 		echo $CONTRACT_ADDR
+		echo $STAKE_REQUIRE
+		echo $STAKE_LOCK_HEIGHT
 		echo $PREFUND_ADDR
 		#for PFAC in "${PFACs[@]}"; do
 		#	echo $PFAC

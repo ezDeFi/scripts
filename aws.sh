@@ -66,7 +66,8 @@ INSTANCES=(
 : ${BOOTNODE_REGION:=ap-southeast-1}
 : ${BOOTNODE_INSTANCE_TYPE:=t3.micro}
 : ${ETHSTATS:=nexty-devnet@198.13.40.85:8080}
-: ${CONTRACT_ADDR:=cafecafecafecafecafecafecafecafecafecafe}
+: ${STAKE_REQUIRE:=100}
+: ${STAKE_LOCK_HEIGHT:=150}
 : ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
 : ${BLOCK_TIME:=2}
 : ${EPOCH:=10}
@@ -266,6 +267,8 @@ function generate_genesis {
 		echo $THANGLONG_BLOCK
 		echo $THANGLONG_EPOCH
 		echo $CONTRACT_ADDR
+		echo $STAKE_REQUIRE
+		echo $STAKE_LOCK_HEIGHT
 		echo $PREFUND_ADDR
 		for PFAC in "${PFACs[@]}"; do
 			echo $PFAC
