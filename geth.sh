@@ -1,6 +1,34 @@
 #!/bin/bash
 #
 # Usage
+#
+# Set the environment variables:
+# export KEY_LOCATION=~/.ssh/devop
+#
+# Deploy or upgrade geth binary to new servers
+# 	geth.sh deploy IP IP ...
+#
+# Init the new sealer nodes.
+# 	geth.sh init IP IP ...
+#
+# Create new account for new nodes, account password will be promted.
+# 	geth.sh create IP IP ...
+#
+# Clear the node accounts.
+# 	geth.sh clear IP IP ...
+#
+# Import private key to nodes. Account password and private key will be prompted.
+# 	geth.sh import IP IP ...
+#
+# Stop the node.
+# 	geth.sh stop IP IP ...
+#
+# Start the node (no sealing nor ethstat).
+# 	geth.sh node IP IP ...
+#
+# Start the sealer (and report to ethstat). Account password will be prompted.
+# 	geth.sh seal IP IP ...
+#
 
 # A POSIX variable
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
@@ -36,10 +64,6 @@ SSH="ssh -oStrictHostKeyChecking=no -oBatchMode=yes $KEY_LOCATION"
 SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes $KEY_LOCATION"
 
 : ${SSH_USER:=ubuntu}
-: ${IP_LIST:=`cat endpoints | tr '\r\n' ' '`}
-IPS=($IP_LIST)
-IPS_IDX=(${!IPS[@]})
-IPS_LEN=${#IPS[@]}
 
 # COMMAND SHORTCUTS
 : ${GETH_CMD_LOCATION:=../go?e*/build/bin}
