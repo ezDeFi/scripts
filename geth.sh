@@ -280,35 +280,32 @@ function init {
 		test -z $ETHSTATS && ETHSTATS=`$SSH $SSH_USER@$IP "cat ./ethstats.info"`
 		test -z $ETHSTATS && echo "Please set the ETHSTATS env (export ETHSTATS=ip:port)" && continue
 
-		ACC_LIST=`$SSH $SSH_USER@$IP "./$GETH_CMD account list" 2>/dev/null`
-		if grep --quiet 'Account #' <<< $ACC_LIST; then
-			ACC=`grep 'Account #0:' <<< $ACC_LIST`
+		ACC=`get_acc $IP`
+		if [ -z "$ACC" ]; then
+			echo "About to create a new account in $IP with:"
+			echo "	NetworkID:	"$NETWORK_ID
+			echo "	Bootnode:	"$BOOTNODE
+			echo "	Ethstat:	"$ETHSTATS
+			if [ -z $PASSWORD ]; then
+				read -s -p "	Keystore password: " PASS
+				if [ ! -z $PASS ]; then
+					PASSWORD=$PASS
+				fi
+			fi
+
+			ACC=`$SSH $SSH_USER@$IP "./$GETH_CMD account new --password <(echo $PASSWORD)"`
 			ACC=${ACC##*\{}
 			ACC=${ACC%%\}*}
-
-			echo "Node $IP is already initialized with:"
+			echo "	Account:	"$ACC
+		else
+			echo "About to init node $IP with:"
 			echo "	NetworkID:	"$NETWORK_ID
 			echo "	Bootnode:	"$BOOTNODE
 			echo "	Ethstat:	"$ETHSTATS
 			echo "	Account:	"$ACC
-
-			continue
-		fi
-		echo "About to create a new account in $IP with:"
-		echo "	NetworkID:	"$NETWORK_ID
-		echo "	Bootnode:	"$BOOTNODE
-		echo "	Ethstat:	"$ETHSTATS
-		if [ -z $PASSWORD ]; then
-			read -s -p "	Keystore password: " PASS
-			if [ ! -z $PASS ]; then
-				PASSWORD=$PASS
-			fi
 		fi
 
-		ACC=`$SSH $SSH_USER@$IP "./$GETH_CMD account new --password <(echo $PASSWORD)"`
-		ACC=${ACC##*\{}
-		ACC=${ACC%%\}*}
-		echo "	Account:	"$ACC
+		$SSH $SSH_USER@$IP "./$GETH_CMD init *.json"
 
 		$SSH $SSH_USER@$IP "printf \"$NETWORK_ID\" >| networkid.info; printf \"$BOOTNODE\" >| bootnode.info; printf \"$ETHSTATS\" > ethstats.info;"
 	done
