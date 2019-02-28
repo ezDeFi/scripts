@@ -356,7 +356,7 @@ function network {
 		if [ "$1" = clear ]; then
 			$SSH $SSH_USER@$IP "sudo tc qdisc del dev $DI root netem"
 		else
-			$SSH $SSH_USER@$IP "sudo tc qdisc \`grep -q netem <(tc qdisc) && echo change || echo add\` dev $DI root netem $@"
+			$SSH $SSH_USER@$IP "sudo tc qdisc \`grep -q netem <(tc qdisc) && echo change || echo add\` dev $DI root netem $*"
 		fi
 	done
 }
