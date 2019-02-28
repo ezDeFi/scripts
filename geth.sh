@@ -336,4 +336,29 @@ function init {
 	wait
 }
 
+# default_interface IP
+function default_interface {
+	IP=$1
+	$SSH $SSH_USER@$IP "route | grep ^default | awk '{print \$NF}'"
+}
+
+# network
+function network {
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
+
+	for IP in $IP_LIST
+	do
+		DI=`default_interface $IP`
+		echo $IP	$DI
+		if [ "$1" = clear ]; then
+			$SSH $SSH_USER@$IP "sudo tc qdisc del dev $DI root netem"
+		else
+			$SSH $SSH_USER@$IP "sudo tc qdisc \`grep -q netem <(tc qdisc) && echo change || echo add\` dev $DI root netem $@"
+		fi
+	done
+}
+
 "$@"
