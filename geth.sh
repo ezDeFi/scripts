@@ -53,6 +53,7 @@ shift $((OPTIND-1))
 : ${BOOTNODE:=}
 : ${ETHSTATS:=}
 : ${PASSWORD:=}
+: ${IP_LIST:=}
 
 : ${BINARY_POSTFIX:=}
 # KEY_LOCATION=~/.ssh/id_rsa
@@ -70,9 +71,11 @@ SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes $KEY_LOCATION"
 : ${GETH_CMD:=geth}
 GETH="./$GETH_CMD --syncmode full --cache 2048 --gcmode=archive --rpc --rpcapi db,eth,net,web3,personal --rpccorsdomain \"*\" --rpcaddr 0.0.0.0 --gasprice 0 --targetgaslimit 42000000 --txpool.nolocals --txpool.pricelimit 0"
 
-# stop IP IP ..
 function stop {
-	test $# -ne 0 && IP_LIST="$@"
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
 
 	for IP in $IP_LIST
 	do
@@ -81,9 +84,11 @@ function stop {
 	wait
 }
 
-# node IP IP ..
 function node {
-	test $# -ne 0 && IP_LIST="$@"
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
 
 	for IP in $IP_LIST
 	do (
@@ -96,9 +101,11 @@ function node {
 	wait
 }
 
-# seal IP IP ..
 function seal {
-	test $# -ne 0 && IP_LIST="$@"
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
 
 	for IP in $IP_LIST
 	do
@@ -134,9 +141,11 @@ function seal {
 	wait
 }
 
-# deploy IP IP ..
 function deploy {
-	test $# -ne 0 && IP_LIST="$@"
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
 
 	for IP in $IP_LIST
 	do
@@ -145,9 +154,11 @@ function deploy {
 	wait
 }
 
-# clear IP IP ..
 function clear {
-	test $# -ne 0 && IP_LIST="$@"
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
 
 	echo "I don't want to live dangerously, please do it yourself by running the following command(s):"
 
@@ -158,6 +169,7 @@ function clear {
 	wait
 }
 
+# get_acc IP
 function get_acc {
 	IP=$1
 	ACC=`$SSH $SSH_USER@$IP "./$GETH_CMD account list" 2>/dev/null | grep 'Account #0:'`
@@ -169,9 +181,12 @@ function get_acc {
 	echo $ACC
 }
 
-# create IP IP ..
+# create
 function create {
-	test $# -ne 0 && IP_LIST="$@"
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
 
 	for IP in $IP_LIST
 	do
@@ -197,9 +212,12 @@ function create {
 	wait
 }
 
-# import IP IP ..
+# import
 function import {
-	test $# -ne 0 && IP_LIST="$@"
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
 
 	for IP in $IP_LIST
 	do
@@ -231,9 +249,12 @@ function import {
 	wait
 }
 
-# export IP IP ..
+# export
 function export {
-	test $# -ne 0 && IP_LIST="$@"
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
 
 	ETHEREAL=`command -v ethereal`
 	if [ -z $ETHEREAL ]; then
@@ -267,9 +288,12 @@ function export {
 	wait
 }
 
-# init IP IP ..
+# init
 function init {
-	test $# -ne 0 && IP_LIST="$@"
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
 
 	for IP in $IP_LIST
 	do
