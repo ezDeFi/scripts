@@ -70,7 +70,7 @@ SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes $KEY_LOCATION"
 # COMMAND SHORTCUTS
 : ${GETH_CMD_LOCATION:=../go?e*/build/bin}
 : ${GETH_CMD:=geth}
-GETH="./$GETH_CMD --syncmode full --cache 2048 --gcmode=archive --rpc --rpcapi db,eth,net,web3,personal --rpccorsdomain \"*\" --rpcaddr 0.0.0.0 --gasprice 0 --targetgaslimit 42000000 --txpool.nolocals --txpool.pricelimit 0"
+GETH="./$GETH_CMD --syncmode=full --cache=2048 --gcmode=archive --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=5 --maxpeers=4"
 
 function stop {
 	if [ -z "$IP_LIST" ]; then
@@ -372,7 +372,7 @@ function random_delay {
 	if [ -z "$IP_LIST" ]; then
 		echo "Please set IP_LIST env"
 		return
-		fi
+	fi
 
 	for IP in $IP_LIST
 	do (
