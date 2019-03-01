@@ -28,8 +28,6 @@ shift $((OPTIND-1))
 [ "${1:-}" = "--" ] && shift
 
 # CONFIG
-: ${NETWORK_NAME:=simnet}
-: ${NETWORK_ID:=50613}
 : ${BINARY_POSTFIX:=}
 : ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
 : ${PREFUND_KEY:=cd4bdb10b75e803d621f64cc22bffdfc5c4b9f8e63e67820cc27811664d43794}
