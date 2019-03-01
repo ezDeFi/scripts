@@ -127,9 +127,9 @@ function seal {
 	for IP in $IP_LIST
 	do
 		echo "About to run sealer in $IP with:"
-		echo "	NetworkID:	"$NETWORK_ID
-		echo "	Bootnode:	"$BOOTNODE
-		echo "	Ethstat:	"$ETHSTATS
+		echo "	NetworkID:	$NETWORK_ID"
+		echo "	Bootnode:	...${BOOTNODE: -40}"
+		echo "	Ethstat:	$ETHSTATS"
 		if [ -z $PASSWORD ]; then
 			read -s -p "	Keystore password: " PASS
 			if [ ! -z $PASS ]; then
@@ -308,9 +308,9 @@ function init {
 		ACC=`get_acc $IP`
 		if [ -z "$ACC" ]; then
 			echo "About to create a new account in $IP with:"
-			echo "	NetworkID:	"$NETWORK_ID
-			echo "	Bootnode:	"$BOOTNODE
-			echo "	Ethstat:	"$ETHSTATS
+			echo "	NetworkID:	$NETWORK_ID"
+			echo "	Bootnode:	...${BOOTNODE: -40}"
+			echo "	Ethstat:	$ETHSTATS"
 			if [ -z $PASSWORD ]; then
 				read -s -p "	Keystore password: " PASS
 				if [ ! -z $PASS ]; then
@@ -324,10 +324,10 @@ function init {
 			echo "	Account:	"$ACC
 		else
 			echo "About to init node $IP with:"
-			echo "	NetworkID:	"$NETWORK_ID
-			echo "	Bootnode:	"$BOOTNODE
-			echo "	Ethstat:	"$ETHSTATS
-			echo "	Account:	"$ACC
+			echo "	NetworkID:	$NETWORK_ID"
+			echo "	Bootnode:	...${BOOTNODE: -40}"
+			echo "	Ethstat:	$ETHSTATS"
+			echo "	Account:	$ACC"
 		fi
 
 		$SSH $SSH_USER@$IP "./$GETH_CMD init *.json"
