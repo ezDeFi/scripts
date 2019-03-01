@@ -54,6 +54,7 @@ shift $((OPTIND-1))
 : ${ETHSTATS:=}
 : ${PASSWORD:=}
 : ${IP_LIST:=}
+: ${NET_IF:=}
 
 : ${BINARY_POSTFIX:=}
 # KEY_LOCATION=~/.ssh/id_rsa
@@ -351,13 +352,21 @@ function network {
 	fi
 
 	for IP in $IP_LIST
-	do
-		DI=`default_interface $IP`
-		echo $IP	$DI
+	do (
+		if [ -z $NET_IF ]; then
+			NET_IF=`default_interface $IP`
+		fi
+		echo "$IP	$NET_IF"
 		if [ "$1" = clear ]; then
-			$SSH $SSH_USER@$IP "sudo tc qdisc del dev $DI root netem"
+			$SSH $SSH_USER@$IP "sudo tc qdisc del dev $NET_IF root netem"
 		else
-			$SSH $SSH_USER@$IP "sudo tc qdisc \`grep -q netem <(tc qdisc) && echo change || echo add\` dev $DI root netem $*"
+			$SSH $SSH_USER@$IP "sudo tc qdisc \`grep -q netem <(tc qdisc) && echo change || echo add\` dev $NET_IF root netem $*"
+		fi
+	) &
+	done
+	wait
+}
+
 		fi
 	done
 }
