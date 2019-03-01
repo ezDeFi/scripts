@@ -103,6 +103,7 @@ function node {
 	wait
 }
 
+# seal [-s]
 function seal {
 	if [ -z "$IP_LIST" ]; then
 		echo "Please set IP_LIST env"
@@ -125,6 +126,11 @@ function seal {
 	test -z $BOOTNODE && echo "Please set the BOOTNODE env (export BOOTNODE=enode://...)" && return
 	test -z $ETHSTATS && echo "Please set the ETHSTATS env (export ETHSTATS=ip:port)" && return
 
+	if [ "$1" = -s ]; then
+		stop
+		sleep 3s
+	fi
+
 	for IP in $IP_LIST
 	do
 		echo "About to run sealer in $IP with:"
@@ -143,10 +149,16 @@ function seal {
 	wait
 }
 
+# deploy [-s]
 function deploy {
 	if [ -z "$IP_LIST" ]; then
 		echo "Please set IP_LIST env"
 		return
+	fi
+
+	if [ "$1" = -s ]; then
+		stop
+		sleep 3s
 	fi
 
 	for IP in $IP_LIST
@@ -154,6 +166,10 @@ function deploy {
 		$SCP $GETH_CMD_LOCATION/$GETH_CMD $SSH_USER@$IP:./ &
 	done
 	wait
+
+	if [ "$1" = -s ]; then
+		seal
+	fi
 }
 
 function clear {
@@ -377,29 +393,6 @@ function network {
 	) &
 	done
 	wait
-}
-
-function re_seal {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
-		return
-	fi
-
-	stop
-	sleep 3s
-	seal
-}
-
-function re_deploy {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
-		return
-	fi
-
-	stop
-	sleep 3s
-	deploy
-	seal
 }
 
 "$@"
