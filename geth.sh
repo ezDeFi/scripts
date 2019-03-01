@@ -344,7 +344,10 @@ function default_interface {
 	$SSH $SSH_USER@$IP "route | grep ^default | awk '{print \$NF}'"
 }
 
-# network
+# network delay LATENCY
+# network loss LOSS
+# network clear
+# network random LATENCY_CAP(ms) LOSS_CAP(%%)
 function network {
 	if [ -z "$IP_LIST" ]; then
 		echo "Please set IP_LIST env"
@@ -356,52 +359,21 @@ function network {
 		if [ -z $NET_IF ]; then
 			NET_IF=`default_interface $IP`
 		fi
-		echo "$IP	$NET_IF"
+
 		if [ "$1" = clear ]; then
+			echo "$IP	$NET_IF"
 			$SSH $SSH_USER@$IP "sudo tc qdisc del dev $NET_IF root netem"
+		elif [ "$1" = random ]; then
+			LATENCY_CAP=${2:-500}
+			LOSS_CAP=${3:-20}
+			LATENCY=$((RANDOM%LATENCY_CAP+1))ms
+			LOSS=`printf "%02d" $((RANDOM%LOSS_CAP+1)) | sed 's/.$/.&/'`
+			echo "$IP	$NET_IF	$LATENCY	$LOSS%"
+			$SSH $SSH_USER@$IP "sudo tc qdisc \`grep -q netem <(tc qdisc) && echo change || echo add\` dev $NET_IF root netem delay $LATENCY loss $LOSS"
 		else
+			echo "$IP	$NET_IF"
 			$SSH $SSH_USER@$IP "sudo tc qdisc \`grep -q netem <(tc qdisc) && echo change || echo add\` dev $NET_IF root netem $*"
 		fi
-	) &
-	done
-	wait
-}
-
-# random_delay
-function random_delay {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
-		return
-	fi
-
-	for IP in $IP_LIST
-	do (
-		if [ -z $NET_IF ]; then
-			NET_IF=`default_interface $IP`
-		fi
-		LATENCY=$((RANDOM%499+1))ms
-		echo "$IP	$NET_IF	$LATENCY"
-		$SSH $SSH_USER@$IP "sudo tc qdisc \`grep -q netem <(tc qdisc) && echo change || echo add\` dev $NET_IF root netem delay $LATENCY"
-	) &
-	done
-	wait
-}
-
-# random_loss
-function random_loss {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
-		return
-	fi
-
-	for IP in $IP_LIST
-	do (
-		if [ -z $NET_IF ]; then
-			NET_IF=`default_interface $IP`
-		fi
-		LOSS=0.$((RANDOM%9+1))%
-		echo "$IP	$NET_IF	$LOSS"
-		$SSH $SSH_USER@$IP "sudo tc qdisc \`grep -q netem <(tc qdisc) && echo change || echo add\` dev $NET_IF root netem loss $LOSS"
 	) &
 	done
 	wait
