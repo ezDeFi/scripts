@@ -367,8 +367,65 @@ function network {
 	wait
 }
 
+# random_delay
+function random_delay {
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
 		fi
+
+	for IP in $IP_LIST
+	do (
+		if [ -z $NET_IF ]; then
+			NET_IF=`default_interface $IP`
+		fi
+		LATENCY=$((RANDOM%499+1))ms
+		echo "$IP	$NET_IF	$LATENCY"
+		$SSH $SSH_USER@$IP "sudo tc qdisc \`grep -q netem <(tc qdisc) && echo change || echo add\` dev $NET_IF root netem delay $LATENCY"
+	) &
 	done
+	wait
+}
+
+# random_loss
+function random_loss {
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
+
+	for IP in $IP_LIST
+	do (
+		if [ -z $NET_IF ]; then
+			NET_IF=`default_interface $IP`
+		fi
+		LOSS=0.$((RANDOM%9+1))%
+		echo "$IP	$NET_IF	$LOSS"
+		$SSH $SSH_USER@$IP "sudo tc qdisc \`grep -q netem <(tc qdisc) && echo change || echo add\` dev $NET_IF root netem loss $LOSS"
+	) &
+	done
+	wait
+}
+
+function re_seal {
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
+
+	stop
+	seal
+}
+
+function re_deploy {
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
+
+	stop
+	deploy
+	seal
 }
 
 "$@"
