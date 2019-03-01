@@ -75,6 +75,8 @@ INSTANCES=(
 : ${THANGLONG_BLOCK:=20}
 : ${THANGLONG_EPOCH:=20}
 : ${SSH_USER:=ubuntu}
+: ${VERBOSITY:=5}
+: ${MAX_PEER:=4}
 
 OUTPUT_TYPE=table
 
@@ -97,7 +99,7 @@ SSH="ssh -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION"
 SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION"
 PSCP="$PSCP_CMD -OStrictHostKeyChecking=no -OBatchMode=yes -x-i$KEY_LOCATION"
 SSH_COPY_ID="ssh-copy-id -i$KEY_LOCATION -f"
-GETH="./$GETH_CMD --syncmode full --cache 2048 --gcmode=archive --networkid $NETWORK_ID --rpc --rpcapi db,eth,net,web3,personal --rpccorsdomain \"*\" --rpcaddr 0.0.0.0 --gasprice 0 --targetgaslimit 42000000 --txpool.nolocals --txpool.pricelimit 0"
+GETH="./$GETH_CMD --syncmode=full --cache=2048 --gcmode=archive --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --maxpeers=$MAX_PEER"
 
 function trim {
 	awk '{$1=$1};1'
