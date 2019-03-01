@@ -386,6 +386,7 @@ function re_seal {
 	fi
 
 	stop
+	sleep 3s
 	seal
 }
 
@@ -396,6 +397,7 @@ function re_deploy {
 	fi
 
 	stop
+	sleep 3s
 	deploy
 	seal
 }
