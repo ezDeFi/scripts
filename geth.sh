@@ -78,8 +78,9 @@ function stop {
 	fi
 
 	for IP in $IP_LIST
-	do
+	do (
 		$SSH $SSH_USER@$IP killall -q --signal SIGINT $GETH_CMD &
+	) &
 	done
 	wait
 }
