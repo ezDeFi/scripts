@@ -96,8 +96,8 @@ fi
 : ${PUPPETH_CMD:=puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=bootnode$BINARY_POSTFIX}
 SSH="ssh -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION"
-SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION"
-PSCP="$PSCP_CMD -OStrictHostKeyChecking=no -OBatchMode=yes -x-i$KEY_LOCATION"
+SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION -C"
+PSCP="$PSCP_CMD -OStrictHostKeyChecking=no -OBatchMode=yes -x-i$KEY_LOCATION -x-C"
 SSH_COPY_ID="ssh-copy-id -i$KEY_LOCATION -f"
 GETH="./$GETH_CMD --syncmode=full --cache=2048 --gcmode=archive --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --maxpeers=$MAX_PEER"
 

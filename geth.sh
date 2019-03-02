@@ -63,7 +63,7 @@ if [ ! -z $KEY_LOCATION ]; then
 	KEY_LOCATION=-i$KEY_LOCATION
 fi
 SSH="ssh -oStrictHostKeyChecking=no -oBatchMode=yes $KEY_LOCATION"
-SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes $KEY_LOCATION"
+SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes $KEY_LOCATION -C"
 
 : ${SSH_USER:=ubuntu}
 
