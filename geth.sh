@@ -395,4 +395,17 @@ function network {
 	wait
 }
 
+function hostname {
+	if [ -z "$IP_LIST" ]; then
+		echo "Please set IP_LIST env"
+		return
+	fi
+
+	for IP in $IP_LIST
+	do
+		$SSH $SSH_USER@$IP "sudo hostname ${IP//\./-}" &
+	done
+	wait
+}
+
 "$@"
