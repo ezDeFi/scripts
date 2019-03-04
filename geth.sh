@@ -408,4 +408,13 @@ function hostname {
 	wait
 }
 
+function log {
+	mkdir -p logs
+	for IP in $IP_LIST
+	do
+		$SCP $SSH_USER@$IP:./geth.log logs/$IP &
+	done
+	wait
+}
+
 "$@"
