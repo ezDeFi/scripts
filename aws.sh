@@ -203,6 +203,10 @@ function load {
 
 	ALL_IPs=`cat /tmp/aws.sh/ips/* | tr "\n" " "`
 
+	for IP in $ALL_IPS; do
+		$SSH $SSH_USER@$IP "sudo hostname ${IP//\./-}" &
+	done
+
 	deploy $ALL_IPs
 	start $ALL_IPs | tr "\n" " " | awk '{$1=$1};1'
 	wait
