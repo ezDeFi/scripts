@@ -37,6 +37,8 @@ shift $((OPTIND-1))
 : ${NETWORK_NAME:=simnet}
 : ${NETWORK_ID:=50613}
 : ${BINARY_POSTFIX:=}
+: ${ETHSTATS:=nexty-devnet@198.13.40.85:8080}
+: ${CONTRACT_ADDR:=0000000000000000000000000000000000012345}
 : ${STAKE_REQUIRE:=100}
 : ${STAKE_LOCK_HEIGHT:=150}
 : ${TOKEN_OWNER:=000000270840d8ebdffc7d162193cc5ba1ad8707}
@@ -60,12 +62,8 @@ BOOTNODE_STRING=
 : ${GETH_CMD:=./build/bin/geth$BINARY_POSTFIX}
 : ${PUPPETH_CMD:=./build/bin/puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=./build/bin/bootnode$BINARY_POSTFIX}
-ETHKEY_CMD=`which ethkey`
-GETH_CMD=`which geth`
-PUPPETH_CMD=`which puppeth`
-BOOTNODE_CMD=`which bootnode`
 GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
-GETH="$GETH_CMD --syncmode=full --cache 2048 --gcmode=archive --networkid $NETWORK_ID --rpc --rpcapi db,eth,net,web3,personal --rpccorsdomain \"*\" --rpcaddr 0.0.0.0 --gasprice 0 --targetgaslimit 42000000 --txpool.nolocals --txpool.pricelimit 0"
+GETH="$GETH_CMD --syncmode=full --cache=2048 --gcmode=archive --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0"
 
 function trim {
 	awk '{$1=$1};1'
