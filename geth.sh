@@ -53,7 +53,7 @@ shift $((OPTIND-1))
 : ${BOOTNODE:=}
 : ${ETHSTATS:=}
 : ${PASSWORD:=}
-: ${IP_LIST:=}
+: ${IPS:=}
 : ${NET_IF:=}
 
 : ${BINARY_POSTFIX:=}
@@ -73,12 +73,12 @@ SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes $KEY_LOCATION -C"
 GETH="./$GETH_CMD --syncmode=full --cache=2048 --gcmode=archive --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=5 --maxpeers=4"
 
 function stop {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
 		return
 	fi
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do (
 		$SSH $SSH_USER@$IP killall -q --signal SIGINT $GETH_CMD &
 	) &
@@ -87,12 +87,12 @@ function stop {
 }
 
 function node {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
 		return
 	fi
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do (
 		test -z $NETWORK_ID && NETWORK_ID=`$SSH $SSH_USER@$IP "cat ./networkid.info"`
 		test -z $BOOTNODE && BOOTNODE=`$SSH $SSH_USER@$IP "cat ./bootnode.info"`
@@ -105,12 +105,12 @@ function node {
 
 # seal [-s]
 function seal {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
 		return
 	fi
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do
 		ACC=`get_acc $IP`
 		if [ -z "$ACC" ]; then
@@ -131,7 +131,7 @@ function seal {
 		sleep 3s
 	fi
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do
 		echo "About to run sealer in $IP with:"
 		echo "	NetworkID:	$NETWORK_ID"
@@ -151,8 +151,8 @@ function seal {
 
 # deploy [-s]
 function deploy {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
 		return
 	fi
 
@@ -161,7 +161,7 @@ function deploy {
 		sleep 3s
 	fi
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do
 		$SCP $GETH_CMD_LOCATION/$GETH_CMD $SSH_USER@$IP:./ &
 	done
@@ -173,14 +173,14 @@ function deploy {
 }
 
 function clear {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
 		return
 	fi
 
 	echo "I don't want to live dangerously, please do it yourself by running the following command(s):"
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do
 		echo $SSH $SSH_USER@$IP "rm -rf ./.ethereum"
 	done
@@ -201,12 +201,12 @@ function get_acc {
 
 # create
 function create {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
 		return
 	fi
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do
 		ACC=`get_acc $IP`
 		if [ ! -z "$ACC" ]; then
@@ -232,12 +232,12 @@ function create {
 
 # import
 function import {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
 		return
 	fi
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do
 		ACC=`get_acc $IP`
 		if [ ! -z "$ACC" ]; then
@@ -269,8 +269,8 @@ function import {
 
 # export
 function export {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
 		return
 	fi
 
@@ -280,7 +280,7 @@ function export {
 		return
 	fi
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do
 		ACC=`get_acc $IP`
 		if [ -z "$ACC" ]; then
@@ -308,12 +308,12 @@ function export {
 
 # init
 function init {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
 		return
 	fi
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do
 		test -z $NETWORK_ID && NETWORK_ID=`$SSH $SSH_USER@$IP "cat ./networkid.info"`
 		test -z $NETWORK_ID && echo "Please set the NETWORK_ID env (export NETWORK_ID=66666)" && continue
@@ -365,12 +365,12 @@ function default_interface {
 # network clear
 # network random LATENCY_CAP(ms) LOSS_CAP(%%)
 function network {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
 		return
 	fi
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do (
 		if [ -z $NET_IF ]; then
 			NET_IF=`default_interface $IP`
@@ -396,12 +396,12 @@ function network {
 }
 
 function hostname {
-	if [ -z "$IP_LIST" ]; then
-		echo "Please set IP_LIST env"
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
 		return
 	fi
 
-	for IP in $IP_LIST
+	for IP in $IPS
 	do
 		$SSH $SSH_USER@$IP "sudo hostname ${IP//\./-}" &
 	done
@@ -410,7 +410,7 @@ function hostname {
 
 function log {
 	mkdir -p logs
-	for IP in $IP_LIST
+	for IP in $IPS
 	do
 		$SCP $SSH_USER@$IP:./geth.log logs/$IP &
 	done
