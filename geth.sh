@@ -70,7 +70,7 @@ SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes $KEY_LOCATION -C"
 # COMMAND SHORTCUTS
 : ${GETH_CMD_LOCATION:=../go?e*/build/bin}
 : ${GETH_CMD:=geth}
-GETH="./$GETH_CMD --syncmode=full --cache=2048 --gcmode=archive --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=5 --maxpeers=4"
+: ${GETH_CMD_BIN:=$GETH_CMD}
 
 function stop {
 	if [ -z "$IPS" ]; then
@@ -163,7 +163,7 @@ function deploy {
 
 	for IP in $IPS
 	do
-		$SCP $GETH_CMD_LOCATION/$GETH_CMD $SSH_USER@$IP:./ &
+		$SCP $GETH_CMD_LOCATION/$GETH_CMD_BIN $SSH_USER@$IP:./$GETH_CMD &
 	done
 	wait
 

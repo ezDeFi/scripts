@@ -94,6 +94,7 @@ else
 	exit -1
 fi
 : ${GETH_CMD:=geth$BINARY_POSTFIX}
+: ${GETH_CMD_BIN:=gonex}
 : ${PUPPETH_CMD:=puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=bootnode$BINARY_POSTFIX}
 SSH="ssh -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION"
@@ -346,7 +347,7 @@ function restart {
 
 function deploy {
 	IPs="$@"
-	$PSCP -h <(printf "%s\n" $IPs) -l ubuntu ./build/bin/$GETH_CMD /home/ubuntu/
+	$PSCP -h <(printf "%s\n" $IPs) -l ubuntu ./build/bin/$GETH_CMD_BIN /home/ubuntu/$GETH_CMD
 }
 
 function launch_instance {
