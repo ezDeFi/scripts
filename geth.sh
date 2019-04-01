@@ -306,6 +306,38 @@ function export {
 	wait
 }
 
+# block_info #
+function block_info {
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
+		return
+	fi
+
+	ETHEREAL=`command -v ethereal`
+	if [ -z $ETHEREAL ]; then
+		echo "etheral not installed"
+		return
+	fi
+
+	for IP in $IPS
+	do
+		ACC=`get_acc $IP`
+		if [ -z "$ACC" ]; then
+			echo "Node $IP doesn't have an account to export"
+			return
+		fi
+
+		if ! $SSH $SSH_USER@$IP stat ethereal \> /dev/null 2\>\&1; then
+			$SCP "$ETHEREAL" $SSH_USER@$IP:./
+		fi
+
+		echo
+		echo "About to extract a block $1 info from $IP:"
+		$SSH $SSH_USER@$IP "./ethereal --connection=http://localhost:8545 block info --block=$1"
+	done
+	wait
+}
+
 # init
 function init {
 	if [ -z "$IPS" ]; then
