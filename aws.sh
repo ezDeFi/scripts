@@ -181,7 +181,7 @@ function bootnode {
 		$SCP boot.key $SSH_USER@$IP:./
 	fi
 
-	$SSH $SSH_USER@$IP "nohup yes | ./$BOOTNODE_CMD -nodekey=boot.key -verbosity 9 &>bootnode.log &"
+	$SSH $SSH_USER@$IP "nohup yes | ./$BOOTNODE_CMD -nodekey=boot.key -addr=:33333 -verbosity=9 &>bootnode.log &"
 
 	echo enode://`./build/bin/$BOOTNODE_CMD -nodekey=boot.key -writeaddress`@$IP:33333
 }
