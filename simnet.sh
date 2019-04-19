@@ -142,11 +142,11 @@ function generate_genesis {
 		echo 2
 		echo 2
 		echo
-	) >| /tmp/puppeth.json
+	) >| /tmp/puppeth.input
 
 	GENESIS_JSON=$NETWORK_NAME.json
 	rm $NETWORK_NAME-*.json ~/.puppeth/* /tmp/$GENESIS_JSON
-	$PUPPETH_CMD --network=$NETWORK_NAME < /tmp/puppeth.json >/dev/null
+	$PUPPETH_CMD --network=$NETWORK_NAME < /tmp/puppeth.input >/dev/null
 
 	if [ ! -f "$GENESIS_JSON" ]; then
 		>&2 echo "Unable to create genesis file with Puppeth"
