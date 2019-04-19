@@ -59,7 +59,7 @@ BOOTNODE_STRING=
 
 # COMMAND SHORTCUTS
 : ${ETHKEY_CMD:=./build/bin/ethkey$BINARY_POSTFIX}
-: ${GETH_CMD:=./build/bin/geth$BINARY_POSTFIX}
+: ${GETH_CMD:=./build/bin/gonex$BINARY_POSTFIX}
 : ${PUPPETH_CMD:=./build/bin/puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=./build/bin/bootnode$BINARY_POSTFIX}
 GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
