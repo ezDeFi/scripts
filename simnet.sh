@@ -48,11 +48,15 @@ shift $((OPTIND-1))
 	# private: cd4bdb10b75e803d621f64cc22bffdfc5c4b9f8e63e67820cc27811664d43794
 	# public:  a83433c26792c93eb56269976cffeb889636ff3f6193b60793fa98c74d9ccdbf4e3a80e2da6b86712e014441828520333828ac4f4605b5d0a8af544f1c5ca67e
 	# address: 000007e01c1507147a0e338db1d029559db6cb19
-: ${BLOCK_TIME:=2}
+: ${BLOCK_TIME:=1}
 : ${EPOCH:=10}
-: ${THANGLONG_BLOCK:=20}
-: ${THANGLONG_EPOCH:=5}
-: ${DATA_DIR:=~/.ethereum}
+: ${THANGLONG_BLOCK:=10}
+: ${THANGLONG_EPOCH:=10}
+
+: ${ENDURIO_BLOCK:=10}
+: ${PRICE_SAMPLING_DURATION:=20}
+: ${PRICE_SAMPLING_INTERVAL:=3}
+: ${PRICE_MEDIAN_RANGE:=13}
 
 OUTPUT_TYPE=table
 
@@ -121,7 +125,7 @@ function generate_genesis {
 	(	set +x
 		echo 2
 		echo 1
-		echo 3
+		echo 4 # Dccs-E
 		echo $BLOCK_TIME
 		echo $EPOCH
 		for AC in "${ACs[@]}"; do
@@ -138,6 +142,12 @@ function generate_genesis {
 		#for PFAC in "${PFACs[@]}"; do
 		#	echo $PFAC
 		#done
+
+		echo $ENDURIO_BLOCK
+		echo $PRICE_SAMPLING_DURATION
+		echo $PRICE_SAMPLING_INTERVAL
+		echo $PRICE_MEDIAN_RANGE
+
 		echo
 		echo no
 		echo $NETWORK_ID
