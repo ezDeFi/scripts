@@ -34,6 +34,8 @@ shift $((OPTIND-1))
 [ "${1:-}" = "--" ] && shift
 
 # CONFIG
+: ${DATA_DIR:=~/.ethereum}
+: ${VERBOSITY:=5}
 : ${NETWORK_NAME:=simnet}
 : ${NETWORK_ID:=50613}
 : ${BINARY_POSTFIX:=}
@@ -62,8 +64,8 @@ BOOTNODE_STRING=
 : ${GETH_CMD:=./build/bin/gonex$BINARY_POSTFIX}
 : ${PUPPETH_CMD:=./build/bin/puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=./build/bin/bootnode$BINARY_POSTFIX}
-GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
-GETH="$GETH_CMD --syncmode=full --cache=2048 --gcmode=archive --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0"
+#GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
+GETH="$GETH_CMD --syncmode=fast --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY"
 
 function trim {
 	awk '{$1=$1};1'
@@ -75,7 +77,7 @@ function bootnode {
 		$BOOTNODE_CMD --genkey=boot.key
 	fi
 
-	nohup yes | $BOOTNODE_CMD -nodekey=boot.key -verbosity 9 &>bootnode.log &
+	nohup yes | $BOOTNODE_CMD -nodekey=boot.key -verbosity=9 &>bootnode.log &
 
 	echo enode://`$BOOTNODE_CMD -nodekey=boot.key -writeaddress`@127.0.0.1:33333
 }
@@ -166,7 +168,7 @@ function init_genesis {
 
 function start {
 	echo password >| /tmp/password
-	CMD="$GETH --mine --unlock=0 --password=/tmp/password --ethstats=$IP:$ETHSTATS"
+	CMD="$GETH --mine --unlock=0 --password=/tmp/password --ethstats=simnet:$ETHSTATS"
 	if [ ! -z "$BOOTNODE_STRING" ]; then
 		CMD="$CMD --bootnodes $BOOTNODE_STRING"
 	fi
