@@ -53,9 +53,10 @@ shift $((OPTIND-1))
 : ${THANGLONG_BLOCK:=10}
 : ${THANGLONG_EPOCH:=10}
 
-: ${ENDURIO_BLOCK:=10}
+: ${ENDURIO_BLOCK:=20}
 : ${PRICE_SAMPLING_DURATION:=40}
 : ${PRICE_SAMPLING_INTERVAL:=3}
+: ${ABSORPTION_TIME:=40}
 
 OUTPUT_TYPE=table
 
@@ -137,15 +138,16 @@ function generate_genesis {
 		echo $STAKE_REQUIRE
 		echo $STAKE_LOCK_HEIGHT
 		echo $TOKEN_OWNER
-		echo $PREFUND_ADDR
-		#for PFAC in "${PFACs[@]}"; do
-		#	echo $PFAC
-		#done
 
 		echo $ENDURIO_BLOCK
 		echo $PRICE_SAMPLING_DURATION
 		echo $PRICE_SAMPLING_INTERVAL
+		echo $ABSORPTION_TIME
 
+		echo $PREFUND_ADDR
+		#for PFAC in "${PFACs[@]}"; do
+		#	echo $PFAC
+		#done
 		echo
 		echo no
 		echo $NETWORK_ID
