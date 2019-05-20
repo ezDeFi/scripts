@@ -34,7 +34,7 @@ shift $((OPTIND-1))
 [ "${1:-}" = "--" ] && shift
 
 # CONFIG
-: ${DATA_DIR:=~/.ethereum}
+: ${DATA_DIR:=/tmp/gonex}
 : ${VERBOSITY:=5}
 : ${NETWORK_NAME:=simnet}
 : ${NETWORK_ID:=111111}
@@ -90,18 +90,19 @@ function bootnode {
 }
 
 function reload {
-	COUNT=${1:-1}
+	IDs=($@)
 	#BOOTNODE_STRING=`bootnode`
 
 	rm -rf "$DATA_DIR"
-	deploy $ALL_IPs | tr "\n" " " | awk '{$1=$1};1'
+	deploy ${IDs[@]} # | tr "\n" " " | awk '{$1=$1};1'
 }
 
 function create_account {
-	echo password >| /tmp/password
-	ACCOUNT=`$GETH_CMD account new --password /tmp/password`
-	rm /tmp/password
+	IDs=($@)
+	for ID in "${IDs[@]}"; do
+		ACCOUNT=`$GETH_CMD account new --password=<(echo password) --datadir=$DATA_DIR/$ID`
 	echo "${ACCOUNT:10:40}"
+	done
 }
 
 # load pre-fund account from keystore folder
@@ -160,7 +161,7 @@ function generate_genesis {
 	) >| /tmp/puppeth.input
 
 	GENESIS_JSON=$NETWORK_NAME.json
-	rm $NETWORK_NAME-*.json ~/.puppeth/* /tmp/$GENESIS_JSON
+	rm -f $NETWORK_NAME-*.json ~/.puppeth/* /tmp/$GENESIS_JSON
 	$PUPPETH_CMD --network=$NETWORK_NAME < /tmp/puppeth.input >/dev/null
 
 	if [ ! -f "$GENESIS_JSON" ]; then
@@ -180,28 +181,52 @@ function init_genesis {
 }
 
 function start {
-	echo password >| /tmp/password
-	CMD="$GETH --mine --unlock=0 --password=/tmp/password --ethstats=simnet:$ETHSTATS"
+	IDs=($@)
+	CMD="$GETH --mine --unlock=0 --password=<(echo password)"
 	if [ ! -z "$BOOTNODE_STRING" ]; then
 		CMD="$CMD --bootnodes $BOOTNODE_STRING"
+	else
+		CMD="$CMD --nodiscover"
 	fi
-	$CMD
-	#nohup $CMD #&>./geth.log
-	rm /tmp/password
+	LAST_ID=
+	for ID in "${IDs[@]}"; do
+		CMD="$CMD --datadir=$DATA_DIR/$ID"
+		CMD="$CMD --ethstats=$ID:$ETHSTATS"
+		CMD="$CMD --port=$((30303 + ID))"
+		CMD="$CMD --rpcport=$((8545 + ID))"
+		gnome-terminal -- bash -ic "$CMD"
+
+		if [ ! -z "$LAST_ID" ]; then
+			(
+				sleep 10s
+				ENODE=`$BOOTNODE_CMD -nodekey=$DATA_DIR/$LAST_ID/geth/nodekey -writeaddress`
+				ENODE=enode://$ENODE@127.0.0.1:$((30303 + LAST_ID))
+				$GETH_CMD --datadir=$DATA_DIR/$ID --exec="admin.addPeer('$ENODE')" attach
+				ENODE=`$BOOTNODE_CMD -nodekey=$DATA_DIR/$ID/geth/nodekey -writeaddress`
+				ENODE=enode://$ENODE@127.0.0.1:$((30303 + ID))
+				$GETH_CMD --datadir=$DATA_DIR/$LAST_ID --exec="admin.addPeer('$ENODE')" attach
+			)&
+	fi
+		LAST_ID=$ID
+	done
+	#nohup $CMD --password=<(echo password) &>$DATA_DIR/$ID.log
 }
 
 function init_geth {
-	$GETH_CMD init $@
+	$GETH_CMD init $2 --datadir=$DATA_DIR/$1
 }
 
 function deploy {
-	IPs=($@)
-	ACs=(`create_account ${IPs[@]}`)
+	IDs=($@)
+	ACs=(`create_account ${IDs[@]}`)
 	
 	GENESIS_JSON=`init_genesis ${ACs[@]}`
 
-	init_geth $GENESIS_JSON
-	start
+	for ID in "${IDs[@]}"; do
+		init_geth $ID $GENESIS_JSON
+	done
+
+	start "${IDs[@]}"
 }
 
 function stop {
