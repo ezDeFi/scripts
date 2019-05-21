@@ -93,12 +93,18 @@ function node {
 		return
 	fi
 
+	if [ "$1" = -s ]; then
+		stop
+		sleep 3s
+	fi
+
 	for IP in $IPS
 	do (
 		test -z $NETWORK_ID && NETWORK_ID=`$SSH $SSH_USER@$IP "cat ./networkid.info"`
 		test -z $BOOTNODE && BOOTNODE=`$SSH $SSH_USER@$IP "cat ./bootnode.info"`
+		test -z $ETHSTATS && ETHSTATS=`$SSH $SSH_USER@$IP "cat ./ethstats.info"`
 
-		$SSH $SSH_USER@$IP "nohup $GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE &>./geth.log &"
+		$SSH $SSH_USER@$IP "nohup $GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE --ethstats $IP:$ETHSTATS &>./geth.log &"
 	) &
 	done
 	wait
