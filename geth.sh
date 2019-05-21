@@ -68,9 +68,10 @@ SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes $KEY_LOCATION -C"
 : ${SSH_USER:=ubuntu}
 
 # COMMAND SHORTCUTS
-: ${GETH_CMD_LOCATION:=../go?e*/build/bin}
-: ${GETH_CMD:=geth}
+: ${GETH_CMD_LOCATION:=../gonex/build/bin}
+: ${GETH_CMD:=gonex}
 : ${GETH_CMD_BIN:=$GETH_CMD}
+GETH="./$GETH_CMD --syncmode=fast --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=5"
 
 function stop {
 	if [ -z "$IPS" ]; then
