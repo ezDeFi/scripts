@@ -230,7 +230,7 @@ function deploy {
 }
 
 function stop {
-	killall -q --signal SIGINT $GETH_CMD &
+	killall -q --signal SIGINT $(basename -- "$GETH_CMD") &
 }
 
 "$@"
