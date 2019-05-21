@@ -194,7 +194,7 @@ function start {
 		CMD="$CMD --ethstats=$ID:$ETHSTATS"
 		CMD="$CMD --port=$((30303 + ID))"
 		CMD="$CMD --rpcport=$((8545 + ID))"
-		gnome-terminal -- bash -ic "$CMD"
+		gnome-terminal --title="node $ID" -- bash -ic "$CMD"
 
 		if [ ! -z "$LAST_ID" ]; then
 			(
