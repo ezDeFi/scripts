@@ -386,6 +386,7 @@ function init {
 			echo "	Account:	$ACC"
 		fi
 
+		$SSH $SSH_USER@$IP "rm -rf ./.ethereum/geth/chaindata"
 		$SSH $SSH_USER@$IP "./$GETH_CMD init *.json"
 
 		$SSH $SSH_USER@$IP "printf \"$NETWORK_ID\" >| networkid.info; printf \"$BOOTNODE\" >| bootnode.info; printf \"$ETHSTATS\" > ethstats.info;"
