@@ -188,7 +188,7 @@ function start {
 	else
 		CMD="$CMD --nodiscover"
 	fi
-	LAST_ID=
+	LAST_ID=${IDs[-1]}
 	for ID in "${IDs[@]}"; do
 		CMD="$CMD --datadir=$DATA_DIR/$ID"
 		CMD="$CMD --ethstats=$ID:$ETHSTATS"
@@ -196,15 +196,12 @@ function start {
 		CMD="$CMD --rpcport=$((8545 + ID))"
 		gnome-terminal --title="node $ID" -- bash -ic "$CMD"
 
-		if [ ! -z "$LAST_ID" ]; then
-			(
-				sleep 10s
+		# full circle peering
+		if [ -z "$BOOTNODE_STRING" ]; then
+		(	sleep $((10+3*LAST_ID))s
 				ENODE=`$BOOTNODE_CMD -nodekey=$DATA_DIR/$LAST_ID/geth/nodekey -writeaddress`
 				ENODE=enode://$ENODE@127.0.0.1:$((30303 + LAST_ID))
 				$GETH_CMD --datadir=$DATA_DIR/$ID --exec="admin.addPeer('$ENODE')" attach
-				ENODE=`$BOOTNODE_CMD -nodekey=$DATA_DIR/$ID/geth/nodekey -writeaddress`
-				ENODE=enode://$ENODE@127.0.0.1:$((30303 + ID))
-				$GETH_CMD --datadir=$DATA_DIR/$LAST_ID --exec="admin.addPeer('$ENODE')" attach
 			)&
 	fi
 		LAST_ID=$ID
