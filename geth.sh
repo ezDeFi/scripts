@@ -216,9 +216,6 @@ function service {
 		test -z $BOOTNODE && echo "Please set the BOOTNODE env (export BOOTNODE=enode://...)" && return
 		test -z $ETHSTATS && echo "Please set the ETHSTATS env (export ETHSTATS=ip:port)" && return
 
-		echo "$GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE --mine --unlock 0 --password <(echo $PASSWORD) --ethstats $IP:$ETHSTATS &>./geth.log" >| /tmp/$GETH_CMD.sh
-		chmod +x /tmp/$GETH_CMD.sh
-
 		echo "
 [Unit]
 Description=Nexty go client
@@ -234,8 +231,15 @@ WantedBy=default.target" >| /tmp/$GETH_CMD.service
 
 		for IP in $IPS
 		do
-		(	$SCP /tmp/$GETH_CMD.sh      $SSH_USER@$IP:./ &
+		(
 			$SCP /tmp/$GETH_CMD.service $SSH_USER@$IP:/tmp/ &
+
+			NAME=`$SSH $SSH_USER@$IP "cat ./name.info"`
+			test -z $NAME && NAME=$IP
+
+			echo "$GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE --mine --unlock 0 --password <(echo $PASSWORD) --ethstats $NAME:$ETHSTATS &>./geth.log" >| /tmp/$IP.sh
+			chmod +x /tmp/$IP.sh
+			$SCP /tmp/$IP.sh            $SSH_USER@$IP:./$GETH_CMD.sh &
 			wait
 			$SSH $SSH_USER@$IP "systemctl --user enable /tmp/$GETH_CMD.service"
 			$SSH $SSH_USER@$IP "loginctl enable-linger $SSH_USER"
