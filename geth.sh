@@ -179,6 +179,64 @@ function deploy {
 	fi
 }
 
+# service enable|disable|start|stop
+function service {
+	if [ -z "$IPS" ]; then
+		echo "Please set IPS env"
+		return
+	fi
+
+	if [ "$1" == "enable" ]; then
+		for IP in $IPS
+		do
+			ACC=`get_acc $IP`
+			if [ -z "$ACC" ]; then
+				echo "Node $IP doesn't have an account to seal"
+				return
+			fi
+			test -z $NETWORK_ID && NETWORK_ID=`$SSH $SSH_USER@$IP "cat ./networkid.info"`
+			test -z $BOOTNODE && BOOTNODE=`$SSH $SSH_USER@$IP "cat ./bootnode.info"`
+			test -z $ETHSTATS && ETHSTATS=`$SSH $SSH_USER@$IP "cat ./ethstats.info"`
+		done
+
+		test -z $NETWORK_ID && echo "Please set the NETWORK_ID env (export NETWORK_ID=66666)" && return
+		test -z $BOOTNODE && echo "Please set the BOOTNODE env (export BOOTNODE=enode://...)" && return
+		test -z $ETHSTATS && echo "Please set the ETHSTATS env (export ETHSTATS=ip:port)" && return
+
+		echo "$GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE --mine --unlock 0 --password <(echo $PASSWORD) --ethstats $IP:$ETHSTATS &>./geth.log" >| /tmp/$GETH_CMD.sh
+		chmod +x /tmp/$GETH_CMD.sh
+
+		echo "
+[Unit]
+Description=Nexty go client
+
+[Service]
+Type=simple
+Restart=always
+WorkingDirectory=%h
+ExecStart=/bin/bash -x ./$GETH_CMD.sh
+
+[Install]
+WantedBy=default.target" >| /tmp/$GETH_CMD.service
+
+		for IP in $IPS
+		do
+		(	$SCP /tmp/$GETH_CMD.sh      $SSH_USER@$IP:./ &
+			$SCP /tmp/$GETH_CMD.service $SSH_USER@$IP:/tmp/ &
+			wait
+			$SSH $SSH_USER@$IP "systemctl --user enable /tmp/$GETH_CMD.service"
+		) &
+		done
+	else
+		for IP in $IPS
+		do
+			$SSH $SSH_USER@$IP "systemctl --user $1 $GETH_CMD" &
+		done
+	fi
+
+	wait
+}
+
 function clear {
 	if [ -z "$IPS" ]; then
 		echo "Please set IPS env"
