@@ -103,8 +103,10 @@ function node {
 		test -z $NETWORK_ID && NETWORK_ID=`$SSH $SSH_USER@$IP "cat ./networkid.info"`
 		test -z $BOOTNODE && BOOTNODE=`$SSH $SSH_USER@$IP "cat ./bootnode.info"`
 		test -z $ETHSTATS && ETHSTATS=`$SSH $SSH_USER@$IP "cat ./ethstats.info"`
+		NAME=`$SSH $SSH_USER@$IP "cat ./name.info"`
+		test -z $NAME && NAME=$IP
 
-		$SSH $SSH_USER@$IP "nohup $GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE --ethstats $IP:$ETHSTATS &>./geth.log &"
+		$SSH $SSH_USER@$IP "nohup $GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE --ethstats $NAME:$ETHSTATS &>./geth.log &"
 	) &
 	done
 	wait
@@ -140,9 +142,13 @@ function seal {
 
 	for IP in $IPS
 	do
+		NAME=`$SSH $SSH_USER@$IP "cat ./name.info"`
+		test -z $NAME && NAME=$IP
+
 		echo "About to run sealer in $IP with:"
 		echo "	NetworkID:	$NETWORK_ID"
 		echo "	Bootnode:	...${BOOTNODE: -40}"
+		echo "  Name:       $NAME"
 		echo "	Ethstat:	$ETHSTATS"
 		if [ -z $PASSWORD ]; then
 			read -s -p "	Keystore password: " PASS
@@ -151,7 +157,7 @@ function seal {
 			fi
 		fi
 
-		$SSH $SSH_USER@$IP "nohup $GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE --mine --unlock 0 --password <(echo $PASSWORD) --ethstats $IP:$ETHSTATS &>./geth.log &"
+		$SSH $SSH_USER@$IP "nohup $GETH --networkid $NETWORK_ID --bootnodes $BOOTNODE --mine --unlock 0 --password <(echo $PASSWORD) --ethstats $NAME:$ETHSTATS &>./geth.log &"
 	done
 	wait
 }
@@ -177,6 +183,13 @@ function deploy {
 	if [ "$1" = -s ]; then
 		seal
 	fi
+}
+
+# name IP NAME
+function name {
+	IP=$1
+	NAME=$2
+	$SSH $SSH_USER@$IP "echo $NAME >| ./name.info"
 }
 
 # service enable|disable|start|stop
