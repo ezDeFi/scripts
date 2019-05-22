@@ -238,6 +238,7 @@ WantedBy=default.target" >| /tmp/$GETH_CMD.service
 			$SCP /tmp/$GETH_CMD.service $SSH_USER@$IP:/tmp/ &
 			wait
 			$SSH $SSH_USER@$IP "systemctl --user enable /tmp/$GETH_CMD.service"
+			$SSH $SSH_USER@$IP "loginctl enable-linger $SSH_USER"
 		) &
 		done
 	else
