@@ -120,9 +120,10 @@ function deploy {
 	$SCP $GETH_CMD_BIN $SSH_USER@$IP:./$GETH_CMD
 }
 
-# get_acc IP
-function get_acc {
-	IP=$1
+# account ID
+function account {
+	ID=$1
+	IP=${IPs[$ID]}
 	ACC=`$SSH $SSH_USER@$IP "./$GETH_CMD account list" 2>/dev/null | grep 'Account #0:'`
 	if [ -z "$ACC" ]; then
 		return
