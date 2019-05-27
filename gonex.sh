@@ -221,5 +221,20 @@ function reset_node_data {
 }
 
 load
+if [ "$2" = "all" ]; then
+	if [[ "init create" == *"$1"* ]]; then
+		# un-parallelable commands
+		for ID in "${!IPs[@]}"; do
+			"$1" "$ID"
+		done
+	else
+		# parallelable commands
+		for ID in "${!IPs[@]}"; do
+			"$1" "$ID" &
+		done
+		wait
+	fi
+else
 "$@"
+fi
 save
