@@ -94,7 +94,8 @@ function reload {
 	#BOOTNODE_STRING=`bootnode`
 
 	rm -rf "$DATA_DIR"
-	deploy ${IDs[@]} # | tr "\n" " " | awk '{$1=$1};1'
+	stop ${IDs[@]}
+	load ${IDs[@]} # | tr "\n" " " | awk '{$1=$1};1'
 }
 
 function create_account {
@@ -216,7 +217,7 @@ function init_geth {
 	$GETH_CMD init $2 --datadir=$DATA_DIR/$1
 }
 
-function deploy {
+function load {
 	IDs=($@)
 	ACs=(`create_account ${IDs[@]}`)
 	
@@ -230,6 +231,19 @@ function deploy {
 }
 
 function stop {
+	IDs=($@)
+	for ID in "${IDs[@]}"; do
+		PID=`ps all | grep -v 'grep' | grep /tmp/gonex/$ID | awk '{print $3}'`
+		test ! -z "$PID" && kill $PID
+	done
+}
+
+function restart {
+	stop "$@"
+	start "$@"
+}
+
+function killall {
 	killall -q --signal SIGINT $(basename -- "$GETH_CMD") &
 }
 
