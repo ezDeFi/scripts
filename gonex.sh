@@ -133,12 +133,12 @@ function account {
 	echo $ACC
 }
 
-# create $ID
+# create ID
 function create {
 	ID=$1
 	IP=${IPs[$ID]}
 
-	ACC=`get_acc $IP`
+	ACC=`account $IP`
 	if [ ! -z "$ACC" ]; then
 		echo "Node $IP already has an account:"
 		echo "	Account:	"$ACC
