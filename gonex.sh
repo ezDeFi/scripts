@@ -212,6 +212,12 @@ function default_peers {
 	done
 }
 
+function reset_node_data {
+	ID=$1
+	IP=${IPs[$ID]}
+	$SSH $SSH_USER@$IP "rm -rf ./.nexty"
+}
+
 load
 "$@"
 save
