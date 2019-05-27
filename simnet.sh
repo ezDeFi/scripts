@@ -195,15 +195,19 @@ function start {
 		CMD="$CMD --rpcport=$((8545 + ID))"
 		gnome-terminal --title="node $ID" -- bash -ic "$CMD"
 
-		# full circle peering
+		# mesh peering
 		if [ -z "$BOOTNODE_STRING" ]; then
-		(	sleep $((10+3*LAST_ID))s
-				ENODE=`$BOOTNODE_CMD -nodekey=$DATA_DIR/$LAST_ID/geth/nodekey -writeaddress`
-				ENODE=enode://$ENODE@127.0.0.1:$((30303 + LAST_ID))
+		(	sleep $((5+2*LAST_ID))s
+			for D in `find $DATA_DIR -mindepth 1 -maxdepth 1 -type d`
+			do
+				I=`basename $D`
+				test "$ID" = "$I" && continue
+				ENODE=`$BOOTNODE_CMD -nodekey=$DATA_DIR/$I/geth/nodekey -writeaddress`
+				ENODE=enode://$ENODE@127.0.0.1:$((30303 + I))
 				$GETH_CMD --datadir=$DATA_DIR/$ID --exec="admin.addPeer('$ENODE')" attach
+			done
 			)&
 	fi
-		LAST_ID=$ID
 	done
 	#nohup $CMD --password=<(echo password) &>$DATA_DIR/$ID.log
 }
