@@ -182,15 +182,14 @@ function init_genesis {
 
 function start {
 	IDs=($@)
-	CMD="$GETH --mine --unlock=0 --password=<(echo password)"
+	CMD_BASE="$GETH --mine --unlock=0 --password=<(echo password)"
 	if [ ! -z "$BOOTNODE_STRING" ]; then
-		CMD="$CMD --bootnodes $BOOTNODE_STRING"
+		CMD_BASE="$CMD_BASE --bootnodes $BOOTNODE_STRING"
 	else
-		CMD="$CMD --nodiscover"
+		CMD_BASE="$CMD_BASE --nodiscover"
 	fi
-	LAST_ID=${IDs[-1]}
 	for ID in "${IDs[@]}"; do
-		CMD="$CMD --datadir=$DATA_DIR/$ID"
+		CMD="$CMD_BASE --datadir=$DATA_DIR/$ID"
 		CMD="$CMD --ethstats=$ID:$ETHSTATS"
 		CMD="$CMD --port=$((30303 + ID))"
 		CMD="$CMD --rpcport=$((8545 + ID))"
