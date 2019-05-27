@@ -209,8 +209,9 @@ function default_peers {
 	IP=${IPs[$ID]}
 
 	for ENODE in $ENODEs; do
-		$SSH $SSH_USER@$IP "./$GETH_CMD --exec=\"admin.addPeer('$ENODE')\" attach"
+		$SSH $SSH_USER@$IP "./$GETH_CMD --exec=\"admin.addPeer('$ENODE')\" attach" &
 	done
+	wait
 }
 
 function reset_node_data {
