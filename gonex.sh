@@ -96,17 +96,17 @@ function sample {
 }
 
 function list {
-	echo "ID	NAME	IP"
+	echo "ID	NAME			IP"
 	for ID in ${!IPs[@]}; do
 		IP=${IPs[$ID]}
 		NAME=${NAMEs[$ID]}
-		echo "$ID	$NAME	$IP"
+		echo "$ID	$NAME			$IP"
 	done
 }
 
 function add {
-	NAMEs[$1]+="$2"
-	IPs[$1]+="$3"
+	NAMEs[$1]="$2"
+	IPs[$1]="$3"
 }
 
 function rem {
