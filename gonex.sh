@@ -81,6 +81,9 @@ function set_ssh_user {
 	SSH_USER="$1"
 }
 
+function login {
+	ssh "${SSH_USER}"@"${IPs[$1]}"
+}
 function sample {
 	# TEST SAMPLES
 	IPs=(
