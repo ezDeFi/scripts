@@ -83,10 +83,7 @@ function set_ssh_user {
 
 function login {
 function view_log {
-	mkdir -p logs
-	$SCP $SSH_USER@${IPs[$1]}:./geth.log logs/gonex.log &
-	wait
-	cat logs/gonex.log
+	$SSH $SSH_USER@${IPs[$1]} 'tail -F ./geth.log'
 }
 function sample {
 	# TEST SAMPLES
