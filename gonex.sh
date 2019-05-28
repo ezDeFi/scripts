@@ -36,7 +36,7 @@ enode://399a27c102949a776e0e0ec12f559fca18e2b4044af3f8180a0f1fb5bcaa293b894d020f
 : ${PASSFILE:=./35c246d5}
 : ${ETHSTATS:=nty2018@stats.nexty.io}
 : ${BINARY_POSTFIX:=}
-: ${KEY_LOCATION:=~/.ssh/id_rsa}
+: ${KEY_LOCATION:=}
 if [ ! -z $KEY_LOCATION ]; then
 	KEY_LOCATION=-i$KEY_LOCATION
 fi
