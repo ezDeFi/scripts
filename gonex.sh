@@ -68,11 +68,17 @@ function save {
 			echo "	[$ID]=${NAMEs[$ID]}"
 		done
 		echo ")"
+
+		echo "SSH_USER=${SSH_USER}"
 	) >| $CONFIG_FILE
 }
 
 function load {
 	source $CONFIG_FILE
+}
+
+function set_ssh_user {
+	SSH_USER="$1"
 }
 
 function sample {
