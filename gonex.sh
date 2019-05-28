@@ -82,7 +82,11 @@ function set_ssh_user {
 }
 
 function login {
-	ssh "${SSH_USER}"@"${IPs[$1]}"
+function view_log {
+	mkdir -p logs
+	$SCP $SSH_USER@${IPs[$1]}:./geth.log logs/gonex.log &
+	wait
+	cat logs/gonex.log
 }
 function sample {
 	# TEST SAMPLES
