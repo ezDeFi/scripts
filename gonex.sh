@@ -32,10 +32,10 @@ enode://374fd3c0eec3e279122ad87bbc4bb729c055a42e7ce7b3988b55101a9b419aef5ba55d07
 enode://399a27c102949a776e0e0ec12f559fca18e2b4044af3f8180a0f1fb5bcaa293b894d020f5742175422341a0f38c53e12adec286fe654db10ce11ade97cd06943@35.197.133.117:30303"
 
 # CONFIG
+: ${CONFIG_FILE:=~/gonex.config}
 : ${PASSFILE:=./35c246d5}
 : ${ETHSTATS:=nty2018@stats.nexty.io}
 : ${BINARY_POSTFIX:=}
-# KEY_LOCATION=~/.ssh/devop
 : ${KEY_LOCATION:=~/.ssh/id_rsa}
 if [ ! -z $KEY_LOCATION ]; then
 	KEY_LOCATION=-i$KEY_LOCATION
@@ -68,11 +68,11 @@ function save {
 			echo "	[$ID]=${NAMEs[$ID]}"
 		done
 		echo ")"
-	) >| ./gonex.config
+	) >| $CONFIG_FILE
 }
 
 function load {
-	source ./gonex.config
+	source $CONFIG_FILE
 }
 
 function sample {
