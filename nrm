@@ -1,6 +1,17 @@
 #!/bin/bash
 #
+# nrm - Nexty Remote Manager
+#
 # Usage
+# nrm add ID Name IP
+# nrm deploy ID (or all)
+# nrm init ID (or all)
+# nrm start ID (or all)
+# nrm peers ID (or all)
+# nrm list
+# nrm log ID
+# nrm login ID
+# nrm set_ssh_user SSH_USER
 #
 # Set the environment variables:
 # export KEY_LOCATION=~/.ssh/devop
@@ -32,6 +43,7 @@ enode://374fd3c0eec3e279122ad87bbc4bb729c055a42e7ce7b3988b55101a9b419aef5ba55d07
 enode://399a27c102949a776e0e0ec12f559fca18e2b4044af3f8180a0f1fb5bcaa293b894d020f5742175422341a0f38c53e12adec286fe654db10ce11ade97cd06943@35.197.133.117:30303"
 
 # CONFIG
+
 : ${CONFIG_FILE:=~/gonex.config}
 : ${PASSFILE:=./35c246d5}
 : ${ETHSTATS:=nty2018@stats.nexty.io}
@@ -49,7 +61,7 @@ SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes $KEY_LOCATION -C"
 : ${GETH_CMD_LOCATION:=../gonex/build/bin}
 : ${GETH_CMD:=gonex}
 : ${GETH_CMD_BIN:=$GETH_CMD_LOCATION/$GETH_CMD}
-GETH="./$GETH_CMD --syncmode=fast --gasprice=0 --targetgaslimit=42000000 --txpool.pricelimit=0 --networkid=66666 --ws --wsaddr=0.0.0.0 --wsport=8546 --wsapi=eth,net,web3,debug --wsorigins=''"
+GETH="./$GETH_CMD --syncmode=fast --gasprice=0 --targetgaslimit=42000000 --txpool.pricelimit=0 --networkid=66666"
 
 # CONFIGS
 declare -A IPs
@@ -82,9 +94,13 @@ function set_ssh_user {
 }
 
 function login {
-function view_log {
+	$SSH $SSH_USER@${IPs[$1]}
+}
+
+function log {
 	$SSH $SSH_USER@${IPs[$1]} 'tail -F ./geth.log'
 }
+
 function sample {
 	# TEST SAMPLES
 	IPs=(
@@ -184,7 +200,8 @@ Description=Nexty go client
 
 [Service]
 Type=simple
-Restart=always
+Restart=on-failure
+RestartSec=5s
 WorkingDirectory=%h
 ExecStart=/bin/bash -x ./$GETH_CMD.sh
 
@@ -214,7 +231,13 @@ function stop {
 	$SSH $SSH_USER@$IP "systemctl --user stop $GETH_CMD"
 }
 
-function default_peers {
+function restart {
+	ID=$1
+	IP=${IPs[$ID]}
+	$SSH $SSH_USER@$IP "systemctl --user restart $GETH_CMD"
+}
+
+function peers {
 	ID=$1
 	IP=${IPs[$ID]}
 
