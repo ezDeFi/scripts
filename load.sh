@@ -77,6 +77,10 @@ function random_hex {
 	cat /dev/urandom | tr -dc 'a-fA-F0-9' | fold -w $LEN | head -n 1
 }
 
+function random_address {
+	random_hex 40
+}
+
 function new_key_pair {
 	while read -r line; do
 		if [ ${line:0:6} = secret ]; then
@@ -159,7 +163,7 @@ function spam {
 				while true; do
 					for FROM in $SUBLIST; do
 						KEY=${KEYS[$FROM]}
-						TO=$FROM
+						TO=`random_address`
 						CMD="$ETHEREAL --repeat=$REPEAT tx send --from=$FROM --to=$TO --privatekey=$KEY --amount=${SPLIT} --connection=$ENDPOINT --gasprice=$GAS_PRICE"
 						if [ $((RANDOM%10)) -lt 4 ]; then
 							CMD="$ETHEREAL --repeat=$REPEAT contract deploy --from=$FROM --privatekey=$KEY --data=$CONTRACT_BIN --connection=$ENDPOINT"
