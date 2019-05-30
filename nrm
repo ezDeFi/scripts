@@ -164,7 +164,7 @@ function create {
 	ID=$1
 	IP=${IPs[$ID]}
 
-	ACC=`account $IP`
+	ACC=`account $ID`
 	if [ ! -z "$ACC" ]; then
 		echo "Node $IP already has an account:"
 		echo "	Account:	"$ACC
