@@ -37,10 +37,11 @@ shift $((OPTIND-1))
 : ${DATA_DIR:=/tmp/gonex}
 : ${VERBOSITY:=5}
 : ${NETWORK_NAME:=simnet}
-: ${NETWORK_ID:=111111}
+: ${NETWORK_ID:=131313}
 : ${BINARY_POSTFIX:=}
-: ${ETHSTATS:=nexty-devnet@198.13.40.85:8080}
-ETHSTATS=nexty-devnet@localhost:8080
+#ETHSTATS=nexty-devnet@localhost:8080
+#ETHSTATS=nty2018@stats.nexty.io:80
+: ${ETHSTATS:=nexty-devnet@stats.testnet.nexty.io:8080}
 : ${CONTRACT_ADDR:=0000000000000000000000000000000000012345}
 : ${STAKE_REQUIRE:=100}
 : ${STAKE_LOCK_HEIGHT:=150}
@@ -56,10 +57,10 @@ PREFUND_ADDR=95e2fcBa1EB33dc4b8c6DCBfCC6352f0a253285d
 : ${THANGLONG_BLOCK:=10}
 : ${THANGLONG_EPOCH:=10}
 
-: ${ENDURIO_BLOCK:=20}
+: ${ENDURIO_BLOCK:=10}
 : ${PRICE_SAMPLING_DURATION:=40}
 : ${PRICE_SAMPLING_INTERVAL:=3}
-: ${ABSORPTION_TIME:=40}
+: ${ABSORPTION_TIME:=20}
 
 OUTPUT_TYPE=table
 
@@ -73,6 +74,7 @@ BOOTNODE_STRING=
 : ${BOOTNODE_CMD:=./build/bin/bootnode$BINARY_POSTFIX}
 #GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
 GETH="$GETH_CMD --syncmode=fast --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY"
+#GETH="$GETH --txpool.spammyage=0"
 
 function trim {
 	awk '{$1=$1};1'
