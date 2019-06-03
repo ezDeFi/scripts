@@ -266,6 +266,9 @@ function restart {
 	ID=$1
 	IP=${IPs[$ID]}
 	$SSH $SSH_USER@$IP "systemctl --user restart $GETH_CMD"
+	echo "Wait for 10s to add peers"
+	sleep 10s
+	nrm peers $1
 }
 
 function peers {
