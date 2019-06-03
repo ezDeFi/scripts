@@ -3,7 +3,7 @@
 # nrm - Nexty Remote Manager
 #
 # Usage
-# nrm add ID Name IP
+# nrm add ID Name IP DESC_WITH
 # nrm deploy ID (or all)
 # nrm init ID (or all)
 # nrm start ID (or all)
@@ -66,6 +66,8 @@ GETH="./$GETH_CMD --syncmode=fast --gasprice=0 --targetgaslimit=42000000 --txpoo
 # CONFIGS
 declare -A IPs
 declare -A NAMEs
+declare -A DESCs
+declare -A SIGNERADDRs
 
 function save {
 	(
@@ -80,6 +82,18 @@ function save {
 			echo "	[$ID]=${NAMEs[$ID]}"
 		done
 		echo ")"
+
+		echo "DESCs=("
+		for ID in "${!DESCs[@]}"; do
+			echo "	[$ID]=${DESCs[$ID]}"
+		done
+		echo ")"
+
+		echo "SIGNERADDRs=("
+		for ID in "${!SIGNERADDRs[@]}"; do
+			echo "	[$ID]=${SIGNERADDRs[$ID]}"
+		done
+		echo ")"		
 
 		echo "SSH_USER=${SSH_USER}"
 	) >| $CONFIG_FILE
@@ -98,7 +112,7 @@ function login {
 }
 
 function log {
-	$SSH $SSH_USER@${IPs[$1]} 'tail -F ./geth.log'
+	$SSH $SSH_USER@${IPs[$1]} 'tail -F ./gonex.log'
 }
 
 function sample {
@@ -116,27 +130,42 @@ function sample {
 }
 
 function list {
-	echo "ID	NAME			IP"
+	echo "ID	NAME			IP			DESC				SIGNER ADDRESS"
 	for ID in ${!IPs[@]}; do
+		NAMESP=""
+		DESCSP=""
 		IP=${IPs[$ID]}
 		NAME=${NAMEs[$ID]}
-		echo "$ID	$NAME			$IP"
+		if [ "${#NAME}" -lt "8" ]; then
+			NAMESP="	"
+		fi
+		DESC=${DESCs[$ID]}
+		if [ "${#DESC}" -lt "8" ]; then
+			DESCSP="		"
+		fi
+		SIGNERADDR=${SIGNERADDRs[$ID]}
+		echo "$ID	$NAME	$NAMESP	$IP		$DESC	$DESCSP	$SIGNERADDR"
 	done
 }
 
 function add {
 	NAMEs[$1]="$2"
 	IPs[$1]="$3"
+	DESCs[$1]="$4"
 }
 
 function rem {
 	unset NAMEs[$1]
 	unset IPs[$1]
+	unset DESCs[$1]
+	unset SIGNERADDRs[$1]
 }
 
 function clear {
 	IPs=()
 	NAMEs=()
+	DESCs=()
+	SIGNERADDRs=()
 }
 
 # deploy $ID
@@ -156,7 +185,7 @@ function account {
 	fi
 	ACC=${ACC##*\{}
 	ACC=${ACC%%\}*}
-	echo $ACC
+	echo "0x"$ACC
 }
 
 # create ID
@@ -168,6 +197,7 @@ function create {
 	if [ ! -z "$ACC" ]; then
 		echo "Node $IP already has an account:"
 		echo "	Account:	"$ACC
+		SIGNERADDRs[$ID]=$ACC
 		return
 	fi
 	echo "About to create a new account in $IP with:"
@@ -183,6 +213,7 @@ function create {
 	ACC=`$SSH $SSH_USER@$IP "./$GETH_CMD account new --password=$PASSFILE"`
 	ACC=${ACC##*\{}
 	ACC=${ACC%%\}*}
+	SIGNERADDRs[$ID]="0x"$ACC
 	echo "	Account:	"$ACC
 }
 
@@ -210,7 +241,7 @@ WantedBy=default.target" >| /tmp/$GETH_CMD.service
 	$SCP /tmp/$GETH_CMD.service $SSH_USER@$IP:/tmp/ &
 
 	# gonex.sh
-	echo "$GETH --mine --unlock=0 --password=$PASSFILE --ethstats=$NAME:$ETHSTATS &>./geth.log" >| /tmp/$GETH_CMD.sh
+	echo "$GETH --mine --unlock=0 --password=$PASSFILE --ethstats=$NAME:$ETHSTATS &>./gonex.log" >| /tmp/$GETH_CMD.sh
 	chmod +x /tmp/$GETH_CMD.sh
 	$SCP /tmp/$GETH_CMD.sh $SSH_USER@$IP:./$GETH_CMD.sh &
 
