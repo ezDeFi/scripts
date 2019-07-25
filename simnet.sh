@@ -1,19 +1,4 @@
 #!/bin/bash
-#
-# Usage
-# + Terminate bootnode:
-# 		aws.sh terminate bn
-# + Terminate all instances except bootnode
-# 		aws.sh terminate all
-# + Load N instances for each configured regions
-# 		aws.sh load N
-#
-# Config
-# 	export NETWORK_NAME=testnet
-# 	export NETWORK_ID=50913
-# 	export BINARY_POSTFIX=-linux-amd64
-# 	export KEY_NAME=DevOp
-#
 
 # A POSIX variable
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
@@ -34,13 +19,15 @@ shift $((OPTIND-1))
 [ "${1:-}" = "--" ] && shift
 
 # CONFIG
-: ${DATA_DIR:=/tmp/gonex}
+: ${CLIENT:=gonex}
+: ${DATA_DIR:=/tmp/$CLIENT}
 : ${VERBOSITY:=5}
 : ${NETWORK_NAME:=simnet}
 : ${NETWORK_ID:=111111}
 : ${BINARY_POSTFIX:=}
-: ${ETHSTATS:=nexty-devnet@198.13.40.85:8080}
-ETHSTATS=nexty-devnet@localhost:8080
+#ETHSTATS=nexty-devnet@localhost:8080
+#ETHSTATS=nty2018@stats.nexty.io:80
+: ${ETHSTATS:=nexty-devnet@stats.testnet.nexty.io:8080}
 : ${CONTRACT_ADDR:=0000000000000000000000000000000000012345}
 : ${STAKE_REQUIRE:=100}
 : ${STAKE_LOCK_HEIGHT:=150}
@@ -57,9 +44,12 @@ PREFUND_ADDR=95e2fcBa1EB33dc4b8c6DCBfCC6352f0a253285d
 : ${THANGLONG_EPOCH:=10}
 
 : ${ENDURIO_BLOCK:=20}
-: ${PRICE_SAMPLING_DURATION:=40}
+: ${PRICE_SAMPLING_DURATION:=50}
 : ${PRICE_SAMPLING_INTERVAL:=3}
-: ${ABSORPTION_TIME:=40}
+: ${ABSORPTION_DURATION:=13}
+: ${ABSORPTION_EXPIRATION:=26}
+: ${SLASHING_DURATION:=13}
+: ${LOCKDOWN_EXPIRATION:=39}
 
 OUTPUT_TYPE=table
 
@@ -68,11 +58,12 @@ BOOTNODE_STRING=
 
 # COMMAND SHORTCUTS
 : ${ETHKEY_CMD:=./build/bin/ethkey$BINARY_POSTFIX}
-: ${GETH_CMD:=./build/bin/gonex$BINARY_POSTFIX}
+: ${GETH_CMD:=./build/bin/${CLIENT}$BINARY_POSTFIX}
 : ${PUPPETH_CMD:=./build/bin/puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=./build/bin/bootnode$BINARY_POSTFIX}
 #GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
 GETH="$GETH_CMD --syncmode=fast --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY"
+#GETH="$GETH --txpool.spammyage=0"
 
 function trim {
 	awk '{$1=$1};1'
@@ -102,14 +93,17 @@ function create_account {
 	IDs=($@)
 	for ID in "${IDs[@]}"; do
 		ACCOUNT=`$GETH_CMD account new --password=<(echo password) --datadir=$DATA_DIR/$ID`
-	echo "${ACCOUNT:10:40}"
+		ACCOUNT=`echo "${ACCOUNT##*0x}" | head -n1`
+		ACCOUNT="${ACCOUNT#*\{}"
+		ACCOUNT="${ACCOUNT%\}*}"
+		echo $ACCOUNT
 	done
 }
 
 # load pre-fund account from keystore folder
 function load_pre_fund_accounts {
 	arr=()
-	for file in ./.gonex/keystore/UTC--*; do
+	for file in ./.$CLIENT/keystore/UTC--*; do
 		if [[ -f $file ]]; then
 			filename=$(basename -- "$file")
 			arr=(${arr[@]} ${filename:37:78})
@@ -147,7 +141,10 @@ function generate_genesis {
 		echo $ENDURIO_BLOCK
 		echo $PRICE_SAMPLING_DURATION
 		echo $PRICE_SAMPLING_INTERVAL
-		echo $ABSORPTION_TIME
+		echo $ABSORPTION_DURATION
+		echo $ABSORPTION_EXPIRATION
+		echo $SLASHING_DURATION
+		echo $LOCKDOWN_EXPIRATION
 
 		echo $PREFUND_ADDR
 		#for PFAC in "${PFACs[@]}"; do
@@ -184,6 +181,8 @@ function init_genesis {
 function start {
 	IDs=($@)
 	CMD_BASE="$GETH --mine --unlock=0 --password=<(echo password)"
+	# add --allow-insecure-unlock for geth 1.9+
+	$GETH --help | grep "allow-insecure-unlock" && CMD_BASE="$CMD_BASE --allow-insecure-unlock"
 	if [ ! -z "$BOOTNODE_STRING" ]; then
 		CMD_BASE="$CMD_BASE --bootnodes $BOOTNODE_STRING"
 	else
@@ -194,6 +193,14 @@ function start {
 		CMD="$CMD --ethstats=$ID:$ETHSTATS"
 		CMD="$CMD --port=$((30303 + ID))"
 		CMD="$CMD --rpcport=$((8545 + ID))"
+
+		# single node
+		if [ ${#IDs[@]} -eq 1 ]; then
+			bash -ic "$CMD"
+			break;
+		fi
+
+		# multiple nodes
 		gnome-terminal --title="node $ID" -- bash -ic "$CMD"
 
 		# mesh peering
@@ -203,7 +210,7 @@ function start {
 			do
 				I=`basename $D`
 				test "$ID" = "$I" && continue
-				ENODE=`$BOOTNODE_CMD -nodekey=$DATA_DIR/$I/geth/nodekey -writeaddress`
+				ENODE=`$BOOTNODE_CMD -nodekey=$DATA_DIR/$I/$CLIENT/nodekey -writeaddress`
 				ENODE=enode://$ENODE@127.0.0.1:$((30303 + I))
 				$GETH_CMD --datadir=$DATA_DIR/$ID --exec="admin.addPeer('$ENODE')" attach
 			done
@@ -233,7 +240,7 @@ function load {
 function stop {
 	IDs=($@)
 	for ID in "${IDs[@]}"; do
-		PID=`ps all | grep -v 'grep' | grep /tmp/gonex/$ID | awk '{print $3}'`
+		PID=`ps all | grep -v 'grep' | grep /tmp/$CLIENT/$ID | awk '{print $3}'`
 		test ! -z "$PID" && kill $PID
 	done
 }

@@ -65,7 +65,7 @@ IMAGE_ID=(
 # )
 
 # CONFIG
-: ${NETWORK_NAME:=testnet}
+: ${NETWORK_NAME:=zergity}
 : ${NETWORK_ID:=50913}
 : ${BINARY_POSTFIX:=}
 : ${BOOTNODE_NAME:=${NETWORK_NAME}_BootNode}
@@ -73,32 +73,42 @@ IMAGE_ID=(
 : ${DEFAULT_INSTANCE_TYPE:=t3.xlarge}
 declare -A INSTANCES
 INSTANCES=(
-	[ap-southeast-1]=$DEFAULT_INSTANCE_TYPE
-	[ap-southeast-2]=c5d.2xlarge
-	[us-east-1]=$DEFAULT_INSTANCE_TYPE
+	 [ap-southeast-1]=t2.medium
+	[ap-southeast-2]=t2.large
+	[us-east-2]=t3.xlarge
+	[eu-west-2]=t2.large
+	[us-west-1]=t2.medium
+	[ca-central-1]=t2.medium
 )
 : ${KEY_NAME:=DevOp}
 : ${KEY_LOCATION:=~/.ssh/devop}
 : ${BOOTNODE_REGION:=ap-southeast-1}
 : ${BOOTNODE_INSTANCE_TYPE:=t3.micro}
-: ${ETHSTATS:=nexty-devnet@198.13.40.85:8080}
+: ${ETHSTATS:=nexty-devnet@stats.testnet.nexty.io:8080}
+: ${SSH_USER:=ubuntu}
+: ${VERBOSITY:=5}
+: ${MAX_PEER:=13}
+
+: ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
+: ${BLOCK_TIME:=1}
+: ${EPOCH:=30}
+
+: ${THANGLONG_BLOCK:=60}
+: ${THANGLONG_EPOCH:=20}
 : ${CONTRACT_ADDR:=0000000000000000000000000000000000012345}
 : ${STAKE_REQUIRE:=100}
 : ${STAKE_LOCK_HEIGHT:=150}
 : ${TOKEN_OWNER:=000000270840d8ebdffc7d162193cc5ba1ad8707}
-: ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
-: ${BLOCK_TIME:=2}
-: ${EPOCH:=10}
-: ${THANGLONG_BLOCK:=20}
-: ${THANGLONG_EPOCH:=20}
-: ${SSH_USER:=ubuntu}
-: ${VERBOSITY:=5}
-: ${MAX_PEER:=4}
+
+: ${ENDURIO_BLOCK:=80}
+: ${PRICE_DURATION:=30}
+: ${PRICE_INTERVAL:=2}
+
 
 OUTPUT_TYPE=table
 
 # Global Variables
-BOOTNODE_STRING=
+BOOTNODE_ENODE=
 
 # COMMAND SHORTCUTS
 if [ -x "$(command -v pscp)" ]; then
@@ -109,7 +119,7 @@ else
 	echo 'Parallel-ssh/pscp not found.'
 	exit -1
 fi
-: ${GETH_CMD:=geth$BINARY_POSTFIX}
+: ${GETH_CMD:=gonex$BINARY_POSTFIX}
 : ${GETH_CMD_BIN:=gonex}
 : ${PUPPETH_CMD:=puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=bootnode$BINARY_POSTFIX}
@@ -117,7 +127,7 @@ SSH="ssh -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION"
 SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION -C"
 PSCP="$PSCP_CMD -OStrictHostKeyChecking=no -OBatchMode=yes -x-i$KEY_LOCATION -x-C"
 SSH_COPY_ID="ssh-copy-id -i$KEY_LOCATION -f"
-GETH="./$GETH_CMD --syncmode=full --cache=2048 --gcmode=archive --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --maxpeers=$MAX_PEER"
+GETH="./$GETH_CMD --syncmode=fast --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --maxpeers=$MAX_PEER"
 
 function trim {
 	awk '{$1=$1};1'
@@ -204,7 +214,7 @@ function bootnode {
 
 function load {
 	COUNT=${1:-1}
-	BOOTNODE_STRING=`bootnode`
+	: ${BOOTNODE_ENODE:=`bootnode`}
 
 	rm -rf /tmp/aws.sh/ips
 	mkdir -p /tmp/aws.sh/ips
@@ -252,7 +262,11 @@ function create_account {
 	arr=()
 	for i in "${!IPs[@]}"; do
 		ACCOUNT=$(cat /tmp/aws.sh/account/$i)
-		arr=(${arr[@]} ${ACCOUNT:10:40})
+		#arr=(${arr[@]} ${ACCOUNT:10:40})
+		ACCOUNT=`echo "${ACCOUNT##*0x}" | head -n1`
+		ACCOUNT="${ACCOUNT#*\{}"
+		ACCOUNT="${ACCOUNT%\}*}"
+		arr=(${arr[@]} $ACCOUNT)
 	done
 	echo "${arr[@]}"
 }
@@ -329,10 +343,14 @@ function init_genesis {
 
 function geth_start {
 	IPs=($@)
+	CMD_BASE="$GETH --mine --unlock=0 --password=<(echo password)"
+	# add --allow-insecure-unlock for geth 1.9+
+	$GETH --help | grep "allow-insecure-unlock" && CMD_BASE="$CMD_BASE --allow-insecure-unlock"
+
 	for IP in "${IPs[@]}"; do
 		(	$SSH $SSH_USER@$IP "./$GETH_CMD init *.json"
-			$SSH $SSH_USER@$IP "nohup $GETH --bootnodes $BOOTNODE_STRING --mine --unlock 0 --password <(echo password) --ethstats $IP:$ETHSTATS &>./geth.log &"
-			$SSH $SSH_USER@$IP "printf \"$NETWORK_ID\" >| networkid.info; printf \"$BOOTNODE_STRING\" >| bootnode.info; printf \"$ETHSTATS\" > ethstats.info;"
+			$SSH $SSH_USER@$IP "nohup $CMD_BASE --ethstats $IP:$ETHSTATS &>./geth.log &"
+			$SSH $SSH_USER@$IP "printf \"$NETWORK_ID\" >| networkid.info; printf \"$BOOTNODE_ENODE\" >| bootnode.info; printf \"$ETHSTATS\" > ethstats.info;"
 		) &
 	done
 	wait
