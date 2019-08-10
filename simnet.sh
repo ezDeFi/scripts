@@ -201,7 +201,7 @@ function start {
 		fi
 
 		# multiple nodes
-		gnome-terminal --title="node $ID" -- bash -ic "$CMD"
+		gnome-terminal --title="node $ID" -- bash -ic "$CMD || read line"
 
 		# mesh peering
 		if [ -z "$BOOTNODE_STRING" ]; then
