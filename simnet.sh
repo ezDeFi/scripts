@@ -124,7 +124,7 @@ function generate_genesis {
 	(	set +x
 		echo 2
 		echo 1
-		echo 4 # Dccs-E
+		echo 3
 		echo $BLOCK_TIME
 		echo $EPOCH
 		for AC in "${ACs[@]}"; do
