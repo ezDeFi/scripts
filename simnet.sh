@@ -231,8 +231,9 @@ function load {
 	GENESIS_JSON=`init_genesis ${ACs[@]}`
 
 	for ID in "${IDs[@]}"; do
-		init_geth $ID $GENESIS_JSON
+		init_geth $ID $GENESIS_JSON &
 	done
+	wait
 
 	start "${IDs[@]}"
 }
