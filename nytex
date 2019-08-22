@@ -1,0 +1,10 @@
+#!/bin/bash
+#	nytex 				to start only
+#	nytex compile		to compile then start
+function compile {
+	yarn --cwd ../nytex/ compile
+}
+"$@"
+CONDEP=1
+SPATH=$(dirname "$(readlink -f "$0")")
+pm2 restart $SPATH/../nytex/nytex.json --cwd $SPATH/../nytex/ >/dev/null 2>&1
