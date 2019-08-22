@@ -1,0 +1,22 @@
+#!/bin/bash
+cd $(currentdir)/../gonex
+echo "Simulating network..."
+(
+	sleep 2
+	echo "Funding to testing accounts..."
+	sleep 28
+	npm run distribute --prefix ../nytex/ >/dev/null 2>&1
+	wait
+	clear
+	echo "Done! It's time to test"
+) &
+(
+	echo "Start price crawler service..."
+	pm2 restart $SPATH/../endurio-crawler/crawler.json --cwd ../endurio-crawler/ >/dev/null 2>&1
+) &
+(
+	echo "Start nytex service..."
+	pm2 restart $SPATH/../nytex/nytex.json --cwd ../nytex/ >/dev/null 2>&1
+) &
+(cd ../gonex/ ; simnet.sh reload 0)
+#(cd $SPATH/../gonex/ ; simnet.sh reload 0 >/dev/null 2>&1)
