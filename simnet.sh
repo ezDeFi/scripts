@@ -57,10 +57,12 @@ OUTPUT_TYPE=table
 BOOTNODE_STRING=
 
 # COMMAND SHORTCUTS
-: ${ETHKEY_CMD:=./build/bin/ethkey$BINARY_POSTFIX}
-: ${GETH_CMD:=./build/bin/${CLIENT}$BINARY_POSTFIX}
-: ${PUPPETH_CMD:=./build/bin/puppeth$BINARY_POSTFIX}
-: ${BOOTNODE_CMD:=./build/bin/bootnode$BINARY_POSTFIX}
+# bin path can be either gonex or go-ethereum
+: ${BIN_PATH:=`ls -d ../go{nex,-ethereum}/build/bin 2>/dev/null | head -n1`}
+: ${ETHKEY_CMD:=$BIN_PATH/ethkey$BINARY_POSTFIX}
+: ${GETH_CMD:=$BIN_PATH/${CLIENT}$BINARY_POSTFIX}
+: ${PUPPETH_CMD:=$BIN_PATH/puppeth$BINARY_POSTFIX}
+: ${BOOTNODE_CMD:=$BIN_PATH/bootnode$BINARY_POSTFIX}
 #GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
 GETH="$GETH_CMD --syncmode=fast --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY"
 #GETH="$GETH --txpool.spammyage=0"
