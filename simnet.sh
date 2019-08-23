@@ -207,6 +207,11 @@ function start {
 			done
 			)&
 
+		bash -ic "nohup $CMD &>$DATA_DIR/$ID/$CLIENT.log &"
+		continue;
+
+		### UNUSED ###
+
 		# single node
 		if [ ${#IDs[@]} -eq 1 ]; then
 			bash -ic "$CMD"
