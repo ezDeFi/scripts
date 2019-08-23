@@ -194,15 +194,6 @@ function start {
 		CMD="$CMD --port=$((30303 + ID))"
 		CMD="$CMD --rpcport=$((8545 + ID))"
 
-		# single node
-		if [ ${#IDs[@]} -eq 1 ]; then
-			bash -ic "$CMD"
-			break;
-		fi
-
-		# multiple nodes
-		gnome-terminal --title="node $ID" -- bash -ic "$CMD || read line"
-
 		# mesh peering
 		if [ -z "$BOOTNODE_STRING" ]; then
 		(	sleep $((5+2*LAST_ID))s
@@ -215,6 +206,15 @@ function start {
 				$GETH_CMD --datadir=$DATA_DIR/$ID --exec="admin.addPeer('$ENODE')" attach
 			done
 			)&
+
+		# single node
+		if [ ${#IDs[@]} -eq 1 ]; then
+			bash -ic "$CMD"
+			break;
+		fi
+
+		# multiple nodes
+		gnome-terminal --title="node $ID" -- bash -ic "$CMD || read line"
 	fi
 	done
 	#nohup $CMD --password=<(echo password) &>$DATA_DIR/$ID.log
