@@ -91,6 +91,18 @@ function reload {
 	load ${IDs[@]} # | tr "\n" " " | awk '{$1=$1};1'
 }
 
+function import_account {
+	IDs=($@)
+	: ${KP_FILE:=../scripts/keypairs}
+	for ID in "${IDs[@]}"; do
+		KEY_PAIR=`head -n$((ID+1)) $KP_FILE | tail -n1`
+		PRV_KEY=${KEY_PAIR#*=}
+		$GETH_CMD --datadir=$DATA_DIR/$ID account import --password=<(echo password) <(echo $PRV_KEY)
+		ACC=${KEY_PAIR%]*}
+		echo ${ACC:1}
+	done
+}
+
 function create_account {
 	IDs=($@)
 	for ID in "${IDs[@]}"; do
@@ -233,7 +245,7 @@ function init_geth {
 
 function load {
 	IDs=($@)
-	ACs=(`create_account ${IDs[@]}`)
+	ACs=(`import_account ${IDs[@]}`)
 	
 	GENESIS_JSON=`init_genesis ${ACs[@]}`
 
