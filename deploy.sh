@@ -30,7 +30,8 @@ function account {
 	fi
 	ACC=${ACC##*\{}
 	ACC=${ACC%%\}*}
-	echo "0x"$ACC
+    echo "$(tput setaf 3)Use following account as signer address when joining Nexty Governance:$(tput sgr0)"
+	echo "$(tput setaf 6)0x"$ACC"$(tput sgr0)"
 }
 
 # create account
@@ -107,7 +108,7 @@ WantedBy=default.target" >| $REMOTE_HOME_PATH/nexty/gonex.service
 	echo "$(tput setaf 3)Start gonex service...$(tput sgr0)"
 	systemctl $USER_PARAM restart gonex
 	echo "Done!"
-
+    account
 }
 
 if [ ! -z $1 ]; then
