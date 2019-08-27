@@ -192,6 +192,20 @@ function init_genesis {
 	echo $GENESIS_JSON
 }
 
+function peers {
+	IDs=($@)
+	for ID in "${IDs[@]}"; do
+		for D in `find $DATA_DIR -mindepth 1 -maxdepth 1 -type d`
+		do
+			I=`basename $D`
+			test "$ID" = "$I" && continue
+			ENODE=`$BOOTNODE_CMD -nodekey=$DATA_DIR/$I/$CLIENT/nodekey -writeaddress`
+			ENODE=enode://$ENODE@127.0.0.1:$((30303 + I))
+			$GETH_CMD --datadir=$DATA_DIR/$ID --exec="admin.addPeer('$ENODE')" attach
+		done
+	done
+}
+
 function start {
 	IDs=($@)
 	CMD_BASE="$GETH --mine --unlock=0 --password=<(echo password)"
@@ -211,14 +225,7 @@ function start {
 		# mesh peering
 		if [ -z "$BOOTNODE_STRING" ]; then
 		(	sleep $((5+2*LAST_ID))s
-			for D in `find $DATA_DIR -mindepth 1 -maxdepth 1 -type d`
-			do
-				I=`basename $D`
-				test "$ID" = "$I" && continue
-				ENODE=`$BOOTNODE_CMD -nodekey=$DATA_DIR/$I/$CLIENT/nodekey -writeaddress`
-				ENODE=enode://$ENODE@127.0.0.1:$((30303 + I))
-				$GETH_CMD --datadir=$DATA_DIR/$ID --exec="admin.addPeer('$ENODE')" attach
-			done
+			peers $ID
 			)&
 
 		bash -ic "nohup $CMD &>$DATA_DIR/$ID/$CLIENT.log &"
