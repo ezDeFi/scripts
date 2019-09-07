@@ -2,15 +2,19 @@
 
 # A POSIX variable
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
+ROLLBACK=
 
 # Initialize our own variables:
 
-while getopts "h?" opt; do
+while getopts "h?r:" opt; do
     case "$opt" in
     h|\?)
         echo "$(basename ""$0"") [-h|-?] command"
         exit 0
         ;;
+	r)
+		ROLLBACK=$OPTARG
+		;;
     esac
 done
 
@@ -216,6 +220,11 @@ function start {
 	else
 		CMD_BASE="$CMD_BASE --nodiscover"
 	fi
+	
+	if [ ! -z "$ROLLBACK" ]; then
+		CMD_BASE="$CMD_BASE --rollback=$ROLLBACK"
+	fi
+
 	for ID in "${IDs[@]}"; do
 		CMD="$CMD_BASE --datadir=$DATA_DIR/$ID"
 		CMD="$CMD --ethstats=$ID:$ETHSTATS"
