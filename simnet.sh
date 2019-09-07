@@ -270,7 +270,7 @@ function load {
 	done
 	wait
 
-	start "${IDs[@]}"
+	# start "${IDs[@]}"
 }
 
 function stop {
