@@ -110,6 +110,16 @@ function import_account {
 	done
 }
 
+function prefund_addresses {
+	N=$1
+	: ${KP_FILE:=../scripts/keypairs}
+	for ((ID=0; ID<N; ID++)); do
+		KEY_PAIR=`tail -n$((ID+1)) $KP_FILE | head -n1`
+		ACC=${KEY_PAIR%]*}
+		echo ${ACC:1}
+	done
+}
+
 function create_account {
 	IDs=($@)
 	for ID in "${IDs[@]}"; do
@@ -171,6 +181,7 @@ function generate_genesis {
 		echo $LOCKDOWN_EXPIRATION
 
 		echo $PREFUND_ADDR
+		prefund_addresses 128
 		#for PFAC in "${PFACs[@]}"; do
 		#	echo $PFAC
 		#done
