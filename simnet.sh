@@ -211,6 +211,11 @@ function init_genesis {
 	echo $GENESIS_JSON
 }
 
+function console {
+	ID=$1
+	$GETH_CMD --datadir=$DATA_DIR/$ID attach
+}
+
 function peers {
 	IDs=($@)
 	for ID in "${IDs[@]}"; do
