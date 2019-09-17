@@ -32,7 +32,6 @@ shift $((OPTIND-1))
 #ETHSTATS=nexty-devnet@localhost:8080
 #ETHSTATS=nty2018@stats.nexty.io:80
 : ${ETHSTATS:=nexty-devnet@stats.testnet.nexty.io:8080}
-: ${CONTRACT_ADDR:=0000000000000000000000000000000000012345}
 : ${STAKE_REQUIRE:=100}
 : ${STAKE_LOCK_HEIGHT:=150}
 : ${TOKEN_OWNER:=000000270840d8ebdffc7d162193cc5ba1ad8707}
@@ -155,7 +154,7 @@ function generate_genesis {
 	(	set +x
 		echo 2
 		echo 1
-		echo 3
+		echo 3 # DCCS
 		echo $BLOCK_TIME
 		echo $EPOCH
 		for AC in "${ACs[@]}"; do
@@ -164,7 +163,6 @@ function generate_genesis {
 		echo
 		echo $THANGLONG_BLOCK
 		echo $THANGLONG_EPOCH
-		echo $CONTRACT_ADDR
 		echo $STAKE_REQUIRE
 		echo $STAKE_LOCK_HEIGHT
 		echo $TOKEN_OWNER
@@ -186,7 +184,7 @@ function generate_genesis {
 		#	echo $PFAC
 		#done
 		echo
-		echo no
+		echo no # Should the precompile-addresses (0x1 .. 0xff) be pre-funded with 1 wei?
 		echo $NETWORK_ID
 		echo 2
 		echo 2
