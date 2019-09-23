@@ -70,7 +70,7 @@ BOOTNODE_STRING=
 : ${PUPPETH_CMD:=$BIN_PATH/puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=$BIN_PATH/bootnode$BINARY_POSTFIX}
 #GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
-GETH="$GETH_CMD --syncmode=fast --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY"
+GETH="$GETH_CMD --syncmode=fast --miner.recommit=500ms --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY"
 #GETH="$GETH --txpool.spammyage=0"
 
 function trim {
