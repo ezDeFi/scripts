@@ -303,6 +303,7 @@ function stop {
 
 function restart {
 	stop "$@"
+	sleep 2s
 	start "$@"
 }
 
