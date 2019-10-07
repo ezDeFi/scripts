@@ -73,6 +73,7 @@ BOOTNODE_STRING=
 GETH="$GETH_CMD --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --miner.recommit=500ms"
 GETH="$GETH --syncmode=fast"
 GETH="$GETH --vdf.gen=vdf-cli"
+GETH="$GETH --price.url=http://localhost:3000/price/NUSD_USD"
 #GETH="$GETH --txpool.spammyage=0"
 
 function trim {
