@@ -255,9 +255,9 @@ function start {
 
 		# mesh peering
 		if [ -z "$BOOTNODE_STRING" ]; then
-		(	sleep $((5+2*LAST_ID))s
+		(	sleep $((3+LAST_ID))s
 			peers $ID
-			)&
+		)&
 
 		bash -ic "nohup $CMD &>$DATA_DIR/$ID/$CLIENT.log &"
 		continue;
