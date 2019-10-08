@@ -129,6 +129,8 @@ fi
 : ${ETHKEY_CMD:=ethkey$BINARY_POSTFIX}
 : ${GETH_CMD:=${CLIENT}$BINARY_POSTFIX}
 : ${PUPPETH_CMD:=$BIN_PATH/puppeth$BINARY_POSTFIX}
+: ${VDF_CLI:=vdf-cli}
+: ${VDF_PATH:=`type -p $VDF_CLI`}
 : ${BOOTNODE_CMD:=bootnode$BINARY_POSTFIX}
 SSH="ssh -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION"
 SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION -C"
@@ -211,6 +213,8 @@ function load {
 		IPs="$IPs $IP"
 	done
 
+
+	deploy_once $IPs
 	deploy $IPs
 	wait
 	init $IPs
@@ -234,6 +238,28 @@ function deploy {
 	$PSCP -h <(printf "%s\n" $IPs) -l ubuntu $BIN_PATH/$GETH_CMD /home/ubuntu/
 }
 
+function deploy_once {
+	if [ -z "$*" ]; then
+		IPs=
+		for F in $NET_DIR/*; do
+			IP=`basename $F`
+			IPs="$IPs $IP"
+		done
+	else
+		IPs=$@
+	fi
+
+	# strip and deploy bootnode binary
+	strip -s $BIN_PATH/$BOOTNODE_CMD
+	$PSCP -h <(printf "%s\n" ${IPs[@]}) -l ubuntu $BIN_PATH/$BOOTNODE_CMD /home/ubuntu/
+
+	# deploy vdf-cli binary
+	$PSCP -h <(printf "%s\n" ${IPs[@]}) -l ubuntu $VDF_PATH /home/ubuntu/
+	for IP in $IPs; do
+		$SSH $SSH_USER@$IP "sudo mv /home/ubuntu/$VDF_CLI /usr/bin/" &
+	done
+}
+
 function init {
 	if [ -z "$*" ]; then
 		IPs=()
@@ -249,10 +275,6 @@ function init {
 	GENESIS_JSON=`generate_genesis ${#IPs[@]}`
 	$PSCP -h <(printf "%s\n" $@) -l $SSH_USER $GENESIS_JSON /home/ubuntu/
 	mv $GENESIS_JSON /tmp/ # for debug
-
-	# strip and deploy bootnode binary
-	strip -s $BIN_PATH/$BOOTNODE_CMD
-	$PSCP -h <(printf "%s\n" ${IPs[@]}) -l ubuntu $BIN_PATH/$BOOTNODE_CMD /home/ubuntu/
 
 	for ID in "${!IPs[@]}"; do
 	(
@@ -285,7 +307,13 @@ function start {
 
 	for IP in $IPs; do
 	(
-		$SSH $SSH_USER@$IP "nohup ./$GETH --ethstats=$IP:$ETHSTATS &>./$CLIENT.log &"
+		# random % of [0,32768)
+		if [ "$RANDOM" -le 16384 ]; then
+			CMD="$GETH --vdf.gen=$VDF_CLI"
+		else
+			CMD="$GETH"
+		fi
+		$SSH $SSH_USER@$IP "nohup ./$CMD --ethstats=$IP:$ETHSTATS &>./$CLIENT.log &"
 
 		# fetch enode once
 		if [ ! -s $NET_DIR/$IP ]; then
