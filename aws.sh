@@ -1,9 +1,7 @@
 #!/bin/bash
 #
 # Usage
-# + Terminate bootnode:
-# 		aws.sh terminate bn
-# + Terminate all instances except bootnode
+# + Terminate all instances
 # 		aws.sh terminate all
 # + Load N instances for each configured regions
 # 		aws.sh load N
@@ -66,49 +64,57 @@ IMAGE_ID=(
 
 # CONFIG
 : ${NETWORK_NAME:=zergity}
-: ${NETWORK_ID:=50913}
+: ${CLIENT:=gonex}
+: ${NETWORK_ID:=111111}
 : ${BINARY_POSTFIX:=}
-: ${BOOTNODE_NAME:=${NETWORK_NAME}_BootNode}
 : ${INSTANCE_NAME:=${NETWORK_NAME}_Sealer}
-: ${DEFAULT_INSTANCE_TYPE:=t3.xlarge}
+: ${DEFAULT_INSTANCE_TYPE:=t3.micro}
 declare -A INSTANCES
 INSTANCES=(
-	 [ap-southeast-1]=t2.medium
-	[ap-southeast-2]=t2.large
-	[us-east-2]=t3.xlarge
+	[ap-southeast-1]=t2.medium
+	[ap-southeast-2]=t3.micro
+	[us-east-2]=t3.micro
 	[eu-west-2]=t2.large
 	[us-west-1]=t2.medium
 	[ca-central-1]=t2.medium
 )
 : ${KEY_NAME:=DevOp}
 : ${KEY_LOCATION:=~/.ssh/devop}
-: ${BOOTNODE_REGION:=ap-southeast-1}
-: ${BOOTNODE_INSTANCE_TYPE:=t3.micro}
 : ${ETHSTATS:=nexty-devnet@stats.testnet.nexty.io:8080}
 : ${SSH_USER:=ubuntu}
+: ${NET_DIR:=/tmp/aws.sh/$NETWORK_NAME}
+: ${KP_FILE:=../scripts/keypairs}
+
 : ${VERBOSITY:=5}
 : ${MAX_PEER:=13}
 
-: ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
-: ${BLOCK_TIME:=1}
-: ${EPOCH:=30}
-
-: ${THANGLONG_BLOCK:=60}
-: ${THANGLONG_EPOCH:=20}
-: ${CONTRACT_ADDR:=0000000000000000000000000000000000012345}
+: ${ETHSTATS:=nexty-devnet@stats.testnet.nexty.io:8080}
 : ${STAKE_REQUIRE:=100}
 : ${STAKE_LOCK_HEIGHT:=150}
 : ${TOKEN_OWNER:=000000270840d8ebdffc7d162193cc5ba1ad8707}
+: ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
+	# private: cd4bdb10b75e803d621f64cc22bffdfc5c4b9f8e63e67820cc27811664d43794
+	# public:  a83433c26792c93eb56269976cffeb889636ff3f6193b60793fa98c74d9ccdbf4e3a80e2da6b86712e014441828520333828ac4f4605b5d0a8af544f1c5ca67e
+	# address: 000007e01c1507147a0e338db1d029559db6cb19
+PREFUND_ADDR=95e2fcBa1EB33dc4b8c6DCBfCC6352f0a253285d
+	# private: a0cf475a29e527dcb1c35f66f1d78852b14d5f5109f75fa4b38fbe46db2022a5
+: ${BLOCK_TIME:=1}
+: ${EPOCH:=10}
+: ${THANGLONG_BLOCK:=10}
+: ${THANGLONG_EPOCH:=10}
 
-: ${ENDURIO_BLOCK:=80}
-: ${PRICE_DURATION:=30}
-: ${PRICE_INTERVAL:=2}
-
+: ${ENDURIO_BLOCK:=20}
+: ${LEAK_DURATION:=64}
+: ${APP_CONFIRMS:=8}
+: ${RANDOM_ITERATION:=3000000}
+: ${PRICE_SAMPLING_DURATION:=50}
+: ${PRICE_SAMPLING_INTERVAL:=3}
+: ${ABSORPTION_DURATION:=13}
+: ${ABSORPTION_EXPIRATION:=26}
+: ${SLASHING_DURATION:=13}
+: ${LOCKDOWN_EXPIRATION:=39}
 
 OUTPUT_TYPE=table
-
-# Global Variables
-BOOTNODE_ENODE=
 
 # COMMAND SHORTCUTS
 if [ -x "$(command -v pscp)" ]; then
@@ -119,15 +125,22 @@ else
 	echo 'Parallel-ssh/pscp not found.'
 	exit -1
 fi
-: ${GETH_CMD:=gonex$BINARY_POSTFIX}
-: ${GETH_CMD_BIN:=gonex}
-: ${PUPPETH_CMD:=puppeth$BINARY_POSTFIX}
+: ${BIN_PATH:=`ls -d ../go{nex,-ethereum}/build/bin 2>/dev/null | head -n1`}
+: ${ETHKEY_CMD:=ethkey$BINARY_POSTFIX}
+: ${GETH_CMD:=${CLIENT}$BINARY_POSTFIX}
+: ${PUPPETH_CMD:=$BIN_PATH/puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=bootnode$BINARY_POSTFIX}
 SSH="ssh -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION"
 SCP="scp -oStrictHostKeyChecking=no -oBatchMode=yes -i$KEY_LOCATION -C"
 PSCP="$PSCP_CMD -OStrictHostKeyChecking=no -OBatchMode=yes -x-i$KEY_LOCATION -x-C"
 SSH_COPY_ID="ssh-copy-id -i$KEY_LOCATION -f"
-GETH="./$GETH_CMD --syncmode=fast --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --maxpeers=$MAX_PEER"
+GETH_BARE="$GETH_CMD --nousb"
+GETH="$GETH_BARE --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --miner.recommit=500ms --allow-insecure-unlock --nodiscover"
+GETH="$GETH --mine --unlock=0 --password=<(echo password)"
+GETH="$GETH --syncmode=fast"
+# GETH="$GETH --vdf.gen=vdf-cli"
+# GETH="$GETH --price.url=http://localhost:3000/price/NUSD_USD"
+#GETH="$GETH --txpool.spammyage=0"
 
 function trim {
 	awk '{$1=$1};1'
@@ -172,149 +185,227 @@ function ssh_ready {
 	)
 }
 
-function bootnode {
-	REGION=$BOOTNODE_REGION
-	ID=`instance_ids Name $BOOTNODE_NAME | awk {'print $NF'}`
-
-	if [ -n "$ID" ]; then
-		STATE=`instance_state $ID`
-		if [ "$STATE" != "running" ]; then
-			aws ec2 start-instances --instance-ids $ID &>/dev/null
-			aws ec2 wait instance-running --instance-ids $ID
-		fi
-	fi
-
-	if [ -z "$ID" ]; then
-		ID=$(aws ec2 run-instances\
-				--block-device-mappings="DeviceName=/dev/sda1,Ebs={VolumeSize=100,VolumeType=gp2}"\
-				--image-id=${IMAGE_ID[$REGION]}\
-				--instance-type=$BOOTNODE_INSTANCE_TYPE\
-				--region=$REGION\
-				--key-name=$KEY_NAME\
-				--tag-specifications="ResourceType=instance,Tags=[{Key=Name,Value=$BOOTNODE_NAME}]"\
-				--query "Instances[].[InstanceId]"\
-				--output=text | tr "\n" " " | awk '{$1=$1};1')
-		aws ec2 wait instance-running --region $REGION --instance-ids $ID
-	fi
-
-	IP=`instance_ip $ID`
-	ssh_ready $SSH_USER@$IP
-
-	if ! $SSH $SSH_USER@$IP stat boot.key \> /dev/null 2\>\&1; then
-		# remote boot.key not exist
-		./build/bin/$BOOTNODE_CMD --genkey=boot.key
-		$SCP build/bin/$BOOTNODE_CMD $SSH_USER@$IP:./
-		$SCP boot.key $SSH_USER@$IP:./
-	fi
-
-	$SSH $SSH_USER@$IP "nohup yes | ./$BOOTNODE_CMD -nodekey=boot.key -addr=:33333 -verbosity=9 &>bootnode.log &"
-
-	echo enode://`./build/bin/$BOOTNODE_CMD -nodekey=boot.key -writeaddress`@$IP:33333
-}
-
 function load {
-	COUNT=${1:-1}
-	: ${BOOTNODE_ENODE:=`bootnode`}
+	local COUNT=${1:-1}
+	rm -rf $NET_DIR
+	mkdir -p $NET_DIR
 
-	rm -rf /tmp/aws.sh/ips
-	mkdir -p /tmp/aws.sh/ips
 	for REGION in "${!INSTANCES[@]}"; do
-		(	IDs=`launch_instance $COUNT`
-			aws ec2 wait instance-running --instance-ids $IDs --region=$REGION
-			IPs=`instance_ip $IDs`
-			LAST_IP=${IPs##* }
-			ssh_ready $SSH_USER@$LAST_IP
-			echo $IPs >| /tmp/aws.sh/ips/$REGION
-		) &
-	done
-	wait
-
-	ALL_IPs=`cat /tmp/aws.sh/ips/* | tr "\n" " "`
-
-	for IP in $ALL_IPS; do
-		$SSH $SSH_USER@$IP "sudo hostname ${IP//\./-}" &
-	done
-
-	deploy $ALL_IPs
-	start $ALL_IPs | tr "\n" " " | awk '{$1=$1};1'
-	wait
-
-	# ssh_key_copy $ALL_IPs
-}
-
-function ssh_key_copy {
-	for pk in ./sshpubkeys/*.pub; do
-		for IP in $@; do
-			$SSH_COPY_ID -i $pk $SSH_USER@$IP &>/dev/null &
+	(
+		IDs=`launch_instance $COUNT`
+		aws ec2 wait instance-running --instance-ids $IDs --region=$REGION
+		IPs=`instance_ip $IDs`
+		for IP in $IPs; do
+			touch $NET_DIR/$IP
 		done
+		LAST_IP=${IPs##* }
+		ssh_ready $SSH_USER@$LAST_IP
+		# echo $IPs >| $NET_DIR/ips/$REGION
+	) &
 	done
 	wait
-}
 
-function create_account {
-	IPs=($@)
-	rm -rf /tmp/aws.sh/account
-	mkdir -p /tmp/aws.sh/account
-	for i in "${!IPs[@]}"; do
-		$SSH $SSH_USER@${IPs[$i]} "./$GETH_CMD account new --password <(echo password)" >| /tmp/aws.sh/account/$i &
+	IPs=
+	for F in $NET_DIR/*; do
+		IP=`basename $F`
+		IPs="$IPs $IP"
 	done
+
+	deploy $IPs
 	wait
-	arr=()
-	for i in "${!IPs[@]}"; do
-		ACCOUNT=$(cat /tmp/aws.sh/account/$i)
-		#arr=(${arr[@]} ${ACCOUNT:10:40})
-		ACCOUNT=`echo "${ACCOUNT##*0x}" | head -n1`
-		ACCOUNT="${ACCOUNT#*\{}"
-		ACCOUNT="${ACCOUNT%\}*}"
-		arr=(${arr[@]} $ACCOUNT)
-	done
-	echo "${arr[@]}"
+	init $IPs
+	wait
+	start $IPs
 }
 
-# load pre-fund account from keystore folder
-function load_pre_fund_accounts {(
-	set +x
-	arr=()
-	for file in ./.gonex/keystore/UTC--*; do
-		if [[ -f $file ]]; then
-			filename=$(basename -- "$file")
-			arr=(${arr[@]} ${filename:37:78})
+function deploy {
+	if [ -z "$*" ]; then
+		IPs=
+		for F in $NET_DIR/*; do
+			IP=`basename $F`
+			IPs="$IPs $IP"
+		done
+	else
+		IPs=$@
+	fi
+
+	# strip and deploy gonex binary
+	strip -s $BIN_PATH/$GETH_CMD
+	$PSCP -h <(printf "%s\n" $IPs) -l ubuntu $BIN_PATH/$GETH_CMD /home/ubuntu/
+}
+
+function init {
+	if [ -z "$*" ]; then
+		IPs=()
+		for F in $NET_DIR/*; do
+			IP=`basename $F`
+			IPs+=($IP)
+		done
+	else
+		IPs=($@)
+	fi
+
+	# generate and deploy genesis.json
+	GENESIS_JSON=`generate_genesis ${#IPs[@]}`
+	$PSCP -h <(printf "%s\n" $@) -l $SSH_USER $GENESIS_JSON /home/ubuntu/
+	mv $GENESIS_JSON /tmp/ # for debug
+
+	# strip and deploy bootnode binary
+	strip -s $BIN_PATH/$BOOTNODE_CMD
+	$PSCP -h <(printf "%s\n" ${IPs[@]}) -l ubuntu $BIN_PATH/$BOOTNODE_CMD /home/ubuntu/
+
+	for ID in "${!IPs[@]}"; do
+	(
+		IP=${IPs[ID]}
+
+		# set remote hostname
+		$SSH $SSH_USER@$IP "sudo hostname ${IP//\./-}" &
+
+		# import_account
+		KEY_PAIR=`head -n$((ID+1)) $KP_FILE | tail -n1`
+		PRV_KEY=${KEY_PAIR#*=}
+		$SSH $SSH_USER@$IP "./$GETH_BARE account import --password=<(echo password) <(echo $PRV_KEY)"
+
+		# init database
+		$SSH $SSH_USER@$IP "./$GETH_BARE init $NETWORK_NAME.json"
+	) &
+	done
+}
+
+function start {
+	if [ -z "$*" ]; then
+		IPs=
+		for F in $NET_DIR/*; do
+			IP=`basename $F`
+			IPs="$IPs $IP"
+		done
+	else
+		IPs=$@
+	fi
+
+	for IP in $IPs; do
+	(
+		$SSH $SSH_USER@$IP "nohup ./$GETH --ethstats=$IP:$ETHSTATS &>./$CLIENT.log &"
+
+		# fetch enode once
+		if [ ! -s $NET_DIR/$IP ]; then
+			NODEKEY=`$SSH $SSH_USER@$IP "./$BOOTNODE_CMD -nodekey=./.nexty/gonex/nodekey -writeaddress"`
+			echo $NODEKEY >| $NET_DIR/$IP
 		fi
+	) &
 	done
-	echo "${arr[@]}"
-)}
+	wait
 
-function test_load_pre_fund_accounts {
-	echo `load_pre_fund_accounts`
+	peers $IPs
+}
+
+function stop {
+	if [ -z "$*" ]; then
+		IPs=()
+		for F in $NET_DIR/*; do
+			IP=`basename $F`
+			IPs+=($IP)
+		done
+	else
+		IPs=($@)
+	fi
+
+	for IP in ${IPs[@]}; do
+		$SSH $SSH_USER@$IP killall -q --signal SIGINT $GETH_CMD &
+	done
+}
+
+# restart InstantName
+function restart {
+	stop $@
+	wait
+	start $@
+}
+
+function peers {
+	if [ -z "$*" ]; then
+		IPs=()
+		for F in $NET_DIR/*; do
+			IP=`basename $F`
+			IPs+=($IP)
+		done
+	else
+		IPs=($@)
+	fi
+
+	for IP in ${IPs[@]}; do
+		EXEC=
+		for G in $NET_DIR/*; do
+			# random % of [0,32768)
+			if [ "$RANDOM" -le 16384 ]; then
+				continue
+			fi
+			REMOTE_IP=`basename $G`
+			if [ "$IP" == "$REMOTE_IP" ]; then
+				continue
+			fi
+			NODEKEY=`cat $G`
+			ENODE=enode://$NODEKEY@$REMOTE_IP:30303
+			EXEC="$EXEC admin.addPeer('$ENODE');"
+		done
+		$SSH $SSH_USER@$IP "./$GETH_BARE --exec=\"$EXEC\" attach" &
+	done
+}
+
+function sealing_addresses {
+	N=$1
+	for ((ID=0; ID<N; ID++)); do
+		KEY_PAIR=`head -n$((ID+1)) $KP_FILE | tail -n1`
+		ACC=${KEY_PAIR%]*}
+		echo ${ACC:1}
+	done
+}
+
+function prefund_addresses {
+	N=$1
+	for ((ID=0; ID<N; ID++)); do
+		KEY_PAIR=`tail -n$((ID+1)) $KP_FILE | head -n1`
+		ACC=${KEY_PAIR%]*}
+		echo ${ACC:1}
+	done
 }
 
 # generate the genesis json file
 function generate_genesis {
-	ACs=($@)
-	PFACs=(`load_pre_fund_accounts`)
+	N=$1
 
 	(	set +x
 		echo 2
 		echo 1
-		echo 3
+		echo 3 # DCCS
 		echo $BLOCK_TIME
 		echo $EPOCH
-		for AC in "${ACs[@]}"; do
-			echo $AC
-		done
+		sealing_addresses $N
 		echo
 		echo $THANGLONG_BLOCK
 		echo $THANGLONG_EPOCH
-		echo $CONTRACT_ADDR
 		echo $STAKE_REQUIRE
 		echo $STAKE_LOCK_HEIGHT
 		echo $TOKEN_OWNER
+
+		echo $ENDURIO_BLOCK
+		echo $LEAK_DURATION
+		echo $APP_CONFIRMS
+		echo $RANDOM_ITERATION
+		echo $PRICE_SAMPLING_DURATION
+		echo $PRICE_SAMPLING_INTERVAL
+		echo $ABSORPTION_DURATION
+		echo $ABSORPTION_EXPIRATION
+		echo $SLASHING_DURATION
+		echo $LOCKDOWN_EXPIRATION
+
 		echo $PREFUND_ADDR
-		for PFAC in "${PFACs[@]}"; do
-			echo $PFAC
-		done
+		prefund_addresses 128
+		#for PFAC in "${PFACs[@]}"; do
+		#	echo $PFAC
+		#done
 		echo
-		echo no
+		echo no # Should the precompile-addresses (0x1 .. 0xff) be pre-funded with 1 wei?
 		echo $NETWORK_ID
 		echo 2
 		echo 2
@@ -322,8 +413,8 @@ function generate_genesis {
 	) >| /tmp/puppeth.input
 
 	GENESIS_JSON=$NETWORK_NAME.json
-	rm *.json ~/.puppeth/* /tmp/$GENESIS_JSON
-	./build/bin/$PUPPETH_CMD --network=$NETWORK_NAME < /tmp/puppeth.input >/dev/null
+	rm -f $NETWORK_NAME-*.json ~/.puppeth/* /tmp/$GENESIS_JSON
+	$PUPPETH_CMD --network=$NETWORK_NAME < /tmp/puppeth.input >/dev/null
 
 	if [ ! -f "$GENESIS_JSON" ]; then
 		>&2 echo "Unable to create genesis file with Puppeth"
@@ -331,57 +422,6 @@ function generate_genesis {
 	fi
 
 	echo $GENESIS_JSON
-}
-
-function init_genesis {
-	ACs=($@)
-
-	GENESIS_JSON=`generate_genesis ${ACs[@]}`
-
-	echo $GENESIS_JSON
-}
-
-function geth_start {
-	IPs=($@)
-	CMD_BASE="$GETH --mine --unlock=0 --password=<(echo password)"
-	# add --allow-insecure-unlock for geth 1.9+
-	$GETH --help | grep "allow-insecure-unlock" && CMD_BASE="$CMD_BASE --allow-insecure-unlock"
-
-	for IP in "${IPs[@]}"; do
-		(	$SSH $SSH_USER@$IP "./$GETH_CMD init *.json"
-			$SSH $SSH_USER@$IP "nohup $CMD_BASE --ethstats $IP:$ETHSTATS &>./geth.log &"
-			$SSH $SSH_USER@$IP "printf \"$NETWORK_ID\" >| networkid.info; printf \"$BOOTNODE_ENODE\" >| bootnode.info; printf \"$ETHSTATS\" > ethstats.info;"
-		) &
-	done
-	wait
-}
-
-function start {
-	IPs=($@)
-	ACs=(`create_account ${IPs[@]}`)
-	
-	GENESIS_JSON=`init_genesis ${ACs[@]}`
-
-	$PSCP -h <(printf "%s\n" $@) -l $SSH_USER $GENESIS_JSON /home/ubuntu/
-
-	mv $GENESIS_JSON /tmp/
-
-	geth_start ${IPs[@]}
-}
-
-# restart InstantName
-function restart {
-	for REGION in "${!IMAGE_ID[@]}"; do
-		(	IDs=`instance_ids Name ${1:-$INSTANCE_NAME}`
-			geth_restart `instance_ip $IDs`
-		) &
-	done
-	wait
-}
-
-function deploy {
-	IPs="$@"
-	$PSCP -h <(printf "%s\n" $IPs) -l ubuntu ./build/bin/$GETH_CMD_BIN /home/ubuntu/$GETH_CMD
 }
 
 function launch_instance {
@@ -399,10 +439,7 @@ function launch_instance {
 }
 
 function terminate {
-	if [ "$1" = "bn" ]; then
-		REGION=$BOOTNODE_REGION
-		_terminate $BOOTNODE_NAME
-	elif [ "$1" = "all" ]; then
+	if [ "$1" = "all" ]; then
 		for REGION in "${!IMAGE_ID[@]}"; do
 			_terminate &
 		done
@@ -422,13 +459,6 @@ function _terminate {
 	aws ec2 terminate-instances\
 			--region=$REGION\
 			--instance-ids $IDs >/dev/null
-}
-
-function stop {
-	for IP in $@; do
-		$SSH $SSH_USER@$IP killall -q --signal SIGINT $GETH_CMD &
-	done
-	wait
 }
 
 "$@"
