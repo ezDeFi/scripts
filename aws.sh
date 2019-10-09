@@ -68,15 +68,15 @@ IMAGE_ID=(
 : ${NETWORK_ID:=111111}
 : ${BINARY_POSTFIX:=}
 : ${INSTANCE_NAME:=${NETWORK_NAME}_Sealer}
-: ${DEFAULT_INSTANCE_TYPE:=t3.micro}
+: ${INSTANCE_TYPE:=t3a.micro}
 declare -A INSTANCES
 INSTANCES=(
-	[ap-southeast-1]=t2.medium
-	[ap-southeast-2]=t3.micro
-	[us-east-2]=t3.micro
-	[eu-west-2]=t2.large
-	[us-west-1]=t2.medium
-	[ca-central-1]=t2.medium
+	[us-east-2]=$INSTANCE_TYPE
+	[us-west-1]=$INSTANCE_TYPE
+	[ap-southeast-1]=$INSTANCE_TYPE
+	[ap-southeast-2]=$INSTANCE_TYPE
+	[eu-west-2]=$INSTANCE_TYPE
+	[ca-central-1]=$INSTANCE_TYPE
 )
 : ${KEY_NAME:=DevOp}
 : ${KEY_LOCATION:=~/.ssh/devop}
