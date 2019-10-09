@@ -140,7 +140,7 @@ GETH_BARE="$GETH_CMD --nousb"
 GETH="$GETH_BARE --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --miner.recommit=500ms --allow-insecure-unlock --nodiscover"
 GETH="$GETH --mine --unlock=0 --password=<(echo password)"
 GETH="$GETH --syncmode=fast"
-# GETH="$GETH --vdf.gen=vdf-cli"
+# GETH="$GETH --maxpeers=$MAX_PEER"
 # GETH="$GETH --price.url=http://localhost:3000/price/NUSD_USD"
 #GETH="$GETH --txpool.spammyage=0"
 
@@ -217,12 +217,9 @@ function load {
 		IPs="$IPs $IP"
 	done
 
-
 	deploy_once $IPs
 	deploy $IPs
-	wait
 	init $IPs
-	wait
 	start $IPs
 }
 
@@ -277,25 +274,34 @@ function init {
 
 	# generate and deploy genesis.json
 	GENESIS_JSON=`generate_genesis ${#IPs[@]}`
-	$PSCP -h <(printf "%s\n" $@) -l $SSH_USER $GENESIS_JSON /home/ubuntu/
+	$PSCP -h <(printf "%s\n" ${IPs[@]}) -l $SSH_USER $GENESIS_JSON /home/ubuntu/
+
 	mv $GENESIS_JSON /tmp/ # for debug
 
 	for ID in "${!IPs[@]}"; do
-	(
 		IP=${IPs[ID]}
 
+		# clear the node key
+		> $NET_DIR/$IP
+
 		# set remote hostname
-		$SSH $SSH_USER@$IP "sudo hostname ${IP//\./-}" &
+		CMD="sudo hostname ${IP//\./-}"
+
+		# reset gonex database
+		CMD+=" && rm -rf ./.nexty"
 
 		# import_account
 		KEY_PAIR=`head -n$((ID+1)) $KP_FILE | tail -n1`
 		PRV_KEY=${KEY_PAIR#*=}
-		$SSH $SSH_USER@$IP "./$GETH_BARE account import --password=<(echo password) <(echo $PRV_KEY)"
+		CMD+=" && ./$GETH_BARE account import --password=<(echo password) <(echo $PRV_KEY)"
 
 		# init database
-		$SSH $SSH_USER@$IP "./$GETH_BARE init $NETWORK_NAME.json"
-	) &
+		CMD+=" && ./$GETH_BARE init $GENESIS_JSON"
+
+		# execute
+		$SSH $SSH_USER@$IP "$CMD" &
 	done
+	wait
 }
 
 function start {
@@ -350,7 +356,6 @@ function stop {
 # restart InstantName
 function restart {
 	stop $@
-	wait
 	start $@
 }
 
