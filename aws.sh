@@ -199,10 +199,14 @@ function load {
 		IPs=`instance_ip $IDs`
 		for IP in $IPs; do
 			touch $NET_DIR/$IP
+			(
+				# wait for SSH port to be ready
+				ssh_ready $SSH_USER@$IP
+				# swap on
+				$SSH $SSH_USER@$IP "sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile"
+			) &
 		done
-		LAST_IP=${IPs##* }
-		ssh_ready $SSH_USER@$LAST_IP
-		# echo $IPs >| $NET_DIR/ips/$REGION
+		wait
 	) &
 	done
 	wait
