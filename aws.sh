@@ -35,32 +35,32 @@ shift $((OPTIND-1))
 declare -A IMAGE_ID
 
 # Ubuntu 16 LTS
-IMAGE_ID=(
-	[us-east-1]=ami-0ac019f4fcb7cb7e6
-	[us-east-2]=ami-0f65671a86f061fcd
-	[us-west-1]=ami-063aa838bd7631e0b
-	[us-west-2]=ami-0bbe6b35405ecebdb
-	[ap-southeast-1]=ami-0c5199d385b432989
-	[ap-southeast-2]=ami-07a3bd4944eb120a0
-	[ca-central-1]=ami-0427e8367e3770df1
-	[eu-central-1]=ami-0bdf93799014acdc4
-	[eu-west-2]=ami-0b0a60c0a2bd40612
-	[eu-west-3]=ami-08182c55a1c188dee
-)
+# IMAGE_ID=(
+# 	[us-east-1]=ami-0ac019f4fcb7cb7e6
+# 	[us-east-2]=ami-0f65671a86f061fcd
+# 	[us-west-1]=ami-063aa838bd7631e0b
+# 	[us-west-2]=ami-0bbe6b35405ecebdb
+# 	[ap-southeast-1]=ami-0c5199d385b432989
+# 	[ap-southeast-2]=ami-07a3bd4944eb120a0
+# 	[ca-central-1]=ami-0427e8367e3770df1
+# 	[eu-central-1]=ami-0bdf93799014acdc4
+# 	[eu-west-2]=ami-0b0a60c0a2bd40612
+# 	[eu-west-3]=ami-08182c55a1c188dee
+# )
 
 # Ubuntu 18.04 LTS
-# IMAGE_ID=(
-# 	[us-east-1]=ami-0a313d6098716f372
-# 	[us-east-2]=ami-0c55b159cbfafe1f0
-# 	[us-west-1]=ami-06397100adf427136
-# 	[us-west-2]=ami-005bdb005fb00e791
-# 	[ap-southeast-1]=ami-0dad20bd1b9c8c004
-# 	[ap-southeast-2]=ami-0b76c3b150c6b1423
-# 	[ca-central-1]=ami-01b60a3259250381b
-# 	[eu-central-1]=ami-090f10efc254eaf55
-# 	[eu-west-2]=ami-07dc734dc14746eab
-# 	[eu-west-3]=ami-03bca18cb3dc173c9
-# )
+IMAGE_ID=(
+	[us-east-1]=ami-0a313d6098716f372
+	[us-east-2]=ami-0c55b159cbfafe1f0
+	[us-west-1]=ami-06397100adf427136
+	[us-west-2]=ami-005bdb005fb00e791
+	[ap-southeast-1]=ami-0dad20bd1b9c8c004
+	[ap-southeast-2]=ami-0b76c3b150c6b1423
+	[ca-central-1]=ami-01b60a3259250381b
+	[eu-central-1]=ami-090f10efc254eaf55
+	[eu-west-2]=ami-07dc734dc14746eab
+	[eu-west-3]=ami-03bca18cb3dc173c9
+)
 
 # CONFIG
 : ${NETWORK_NAME:=zergity}
