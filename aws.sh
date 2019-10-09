@@ -429,9 +429,6 @@ function generate_genesis {
 
 		echo $PREFUND_ADDR
 		prefund_addresses 128
-		#for PFAC in "${PFACs[@]}"; do
-		#	echo $PFAC
-		#done
 		echo
 		echo no # Should the precompile-addresses (0x1 .. 0xff) be pre-funded with 1 wei?
 		echo $NETWORK_ID
