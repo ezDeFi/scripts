@@ -148,107 +148,42 @@ function trim {
 	awk '{$1=$1};1'
 }
 
-function instance_ids {
-	aws ec2 describe-instances\
-			--region=$REGION\
-			--filters Name=tag:$1,Values=$2 Name=instance-state-name,Values=running,stopped\
-			--query="Reservations[].Instances[].[InstanceId]"\
-			--output=text | tr "\n" " " | awk '{$1=$1};1'
-}
-
-function instance_state {
-	aws ec2 describe-instance-status\
-			--region=$REGION\
-			--output=$OUTPUT_TYPE\
-			--instance-id $1\
-			--query "InstanceStatuses[].InstanceState[].[Name]"\
-			--output=text | tr "\n" " " | awk '{$1=$1};1'
-}
-
-function instance_ip {
-	aws ec2 describe-instances\
-			--region=$REGION\
-			--instance-ids $@\
-			--query "Reservations[].Instances[].[PublicIpAddress]"\
-			--output=text | tr "\n" " " | awk '{$1=$1};1'
-}
-
-function ssh_ready {
-	(	set +x
-	# Probe SSH connection until it's available 
-	X_READY=''
-	while [ ! $X_READY ]; do
-		sleep 1s
-		set +e
-		OUT=$($SSH -oConnectTimeout=1 $@ exit &>/dev/null)
-		[[ $? = 0 ]] && X_READY='ready'
-		set -e
-	done 
-	)
-}
-
-function load {
-	local COUNT=${1:-1}
-	rm -rf $NET_DIR
-	mkdir -p $NET_DIR
-
-	for REGION in "${!INSTANCES[@]}"; do
-	(
-		IDs=`launch_instance $COUNT`
-		aws ec2 wait instance-running --instance-ids $IDs --region=$REGION
-		IPs=`instance_ip $IDs`
-		for IP in $IPs; do
-			touch $NET_DIR/$IP
-			(
-				# wait for SSH port to be ready
-				ssh_ready $SSH_USER@$IP
-				# swap on
-				$SSH $SSH_USER@$IP "sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile"
-			) &
+function ips {
+	if [ -z "$*" ]; then
+		for F in $NET_DIR/*; do
+			IP=`basename $F`
+			printf "$IP "
 		done
-		wait
-	) &
-	done
-	wait
-
-	IPs=
-	for F in $NET_DIR/*; do
-		IP=`basename $F`
-		IPs="$IPs $IP"
-	done
-
-	deploy_once $IPs
-	deploy $IPs
-	init $IPs
-	start $IPs
+	elif [ "$1" == "random" ]; then
+		for F in $NET_DIR/*; do
+			if [ "$RANDOM" -le ${2:-16384} ]; then
+				IP=`basename $F`
+				printf "$IP "
+			fi
+		done
+	else
+		echo $@
+	fi
 }
 
 function deploy {
-	if [ -z "$*" ]; then
-		IPs=
-		for F in $NET_DIR/*; do
-			IP=`basename $F`
-			IPs="$IPs $IP"
-		done
-	else
-		IPs=$@
-	fi
+	IPs=`ips $@`
 
 	# strip and deploy gonex binary
 	strip -s $BIN_PATH/$GETH_CMD
 	$PSCP -h <(printf "%s\n" $IPs) -l ubuntu $BIN_PATH/$GETH_CMD /home/ubuntu/
 }
 
+function redeploy {
+	IPs=`ips $@`
+
+	stop $IPs
+	deploy $IPs
+	start $IPs
+}
+
 function deploy_once {
-	if [ -z "$*" ]; then
-		IPs=
-		for F in $NET_DIR/*; do
-			IP=`basename $F`
-			IPs="$IPs $IP"
-		done
-	else
-		IPs=$@
-	fi
+	IPs=`ips $@`
 
 	# strip and deploy bootnode binary
 	strip -s $BIN_PATH/$BOOTNODE_CMD
@@ -262,15 +197,7 @@ function deploy_once {
 }
 
 function init {
-	if [ -z "$*" ]; then
-		IPs=()
-		for F in $NET_DIR/*; do
-			IP=`basename $F`
-			IPs+=($IP)
-		done
-	else
-		IPs=($@)
-	fi
+	IPs=(`ips $@`)
 
 	# generate and deploy genesis.json
 	GENESIS_JSON=`generate_genesis ${#IPs[@]}`
@@ -305,15 +232,7 @@ function init {
 }
 
 function start {
-	if [ -z "$*" ]; then
-		IPs=
-		for F in $NET_DIR/*; do
-			IP=`basename $F`
-			IPs="$IPs $IP"
-		done
-	else
-		IPs=$@
-	fi
+	IPs=`ips $@`
 
 	for IP in $IPs; do
 	(
@@ -334,43 +253,30 @@ function start {
 	done
 	wait
 
-	peers $IPs
+	sleep 3s
+	peer $IPs
 }
 
 function stop {
-	if [ -z "$*" ]; then
-		IPs=()
-		for F in $NET_DIR/*; do
-			IP=`basename $F`
-			IPs+=($IP)
-		done
-	else
-		IPs=($@)
-	fi
+	IPs=`ips $@`
 
-	for IP in ${IPs[@]}; do
+	for IP in $IPs; do
 		$SSH $SSH_USER@$IP killall -q --signal SIGINT $GETH_CMD &
 	done
+	wait
 }
 
 # restart InstantName
 function restart {
-	stop $@
-	start $@
+	IPs=`ips $@`
+	stop $IPs
+	start $IPs
 }
 
-function peers {
-	if [ -z "$*" ]; then
-		IPs=()
-		for F in $NET_DIR/*; do
-			IP=`basename $F`
-			IPs+=($IP)
-		done
-	else
-		IPs=($@)
-	fi
+function peer {
+	IPs=`ips $@`
 
-	for IP in ${IPs[@]}; do
+	for IP in $IPs; do
 		EXEC=
 		for G in $NET_DIR/*; do
 			# random % of [0,32768)
@@ -458,6 +364,81 @@ function generate_genesis {
 	echo $GENESIS_JSON
 }
 
+function instance_ids {
+	aws ec2 describe-instances\
+			--region=$REGION\
+			--filters Name=tag:$1,Values=$2 Name=instance-state-name,Values=running,stopped\
+			--query="Reservations[].Instances[].[InstanceId]"\
+			--output=text | tr "\n" " " | trim
+}
+
+function instance_state {
+	aws ec2 describe-instance-status\
+			--region=$REGION\
+			--output=$OUTPUT_TYPE\
+			--instance-id $1\
+			--query "InstanceStatuses[].InstanceState[].[Name]"\
+			--output=text | tr "\n" " " | trim
+}
+
+function instance_ip {
+	aws ec2 describe-instances\
+			--region=$REGION\
+			--instance-ids $@\
+			--query "Reservations[].Instances[].[PublicIpAddress]"\
+			--output=text | tr "\n" " " | trim
+}
+
+function ssh_ready {
+	(	set +x
+	# Probe SSH connection until it's available 
+	X_READY=''
+	while [ ! $X_READY ]; do
+		sleep 1s
+		set +e
+		OUT=$($SSH -oConnectTimeout=1 $@ exit &>/dev/null)
+		[[ $? = 0 ]] && X_READY='ready'
+		set -e
+	done 
+	)
+}
+
+function load {
+	local COUNT=${1:-1}
+	rm -rf $NET_DIR
+	mkdir -p $NET_DIR
+
+	for REGION in "${!INSTANCES[@]}"; do
+	(
+		IDs=`launch_instance $COUNT`
+		aws ec2 wait instance-running --instance-ids $IDs --region=$REGION
+		IPs=`instance_ip $IDs`
+		for IP in $IPs; do
+			touch $NET_DIR/$IP
+			(
+				# wait for SSH port to be ready
+				ssh_ready $SSH_USER@$IP
+				# swap on
+				$SSH $SSH_USER@$IP "sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile"
+			) &
+		done
+		wait
+	) &
+	done
+	wait
+
+	IPs=
+	for F in $NET_DIR/*; do
+		IP=`basename $F`
+		IPs="$IPs $IP"
+	done
+
+	deploy_once $IPs
+	deploy $IPs
+	init $IPs
+	start $IPs
+}
+
 function launch_instance {
 	COUNT=${1:-1}
 	aws ec2 run-instances\
@@ -469,7 +450,7 @@ function launch_instance {
 			--tag-specifications="ResourceType=instance,Tags=[{Key=Name,Value=$INSTANCE_NAME}]"\
 			--count=$COUNT\
 			--query "Instances[].[InstanceId]"\
-			--output=text | tr "\n" " " | awk '{$1=$1};1'
+			--output=text | tr "\n" " " | trim
 }
 
 function terminate {
