@@ -71,11 +71,15 @@ IMAGE_ID=(
 : ${INSTANCE_TYPE:=t3a.micro}
 declare -A INSTANCES
 INSTANCES=(
+	[us-east-1]=$INSTANCE_TYPE
 	[us-east-2]=$INSTANCE_TYPE
 	[us-west-1]=$INSTANCE_TYPE
+	[us-west-2]=$INSTANCE_TYPE
 	[ap-southeast-1]=$INSTANCE_TYPE
 	[ap-southeast-2]=$INSTANCE_TYPE
+	[eu-central-1]=$INSTANCE_TYPE
 	[eu-west-2]=$INSTANCE_TYPE
+	[eu-west-3]=$INSTANCE_TYPE
 	[ca-central-1]=$INSTANCE_TYPE
 )
 : ${KEY_NAME:=DevOp}
