@@ -202,16 +202,17 @@ function deploy_once {
 }
 
 function init {
-	IPs=(`ips $@`)
+	IPs=`ips $@`
+	ALL=(`ips`)
 
 	# generate and deploy genesis.json
-	GENESIS_JSON=`generate_genesis ${#IPs[@]}`
-	$PSCP -h <(printf "%s\n" ${IPs[@]}) -l $SSH_USER $GENESIS_JSON /home/ubuntu/
+	GENESIS_JSON=`generate_genesis ${#ALL[@]}`
+	$PSCP -h <(printf "%s\n" ${ALL[@]}) -l $SSH_USER $GENESIS_JSON /home/ubuntu/
 
 	mv $GENESIS_JSON /tmp/ # for debug
 
-	for ID in "${!IPs[@]}"; do
-		IP=${IPs[ID]}
+	for IP in $IPs; do
+		ID=`id $IP`
 
 		# clear the node key
 		> $NET_DIR/$IP
@@ -222,10 +223,14 @@ function init {
 		# reset gonex database
 		CMD+=" && rm -rf ./.nexty"
 
-		# import_account
+		# import_accounts
+		KEY_PAIR=`prefund_keypair $ID`
+		PREFUND_KEY=${KEY_PAIR#*=}
 		KEY_PAIR=`sealing_keypair $ID`
-		PRV_KEY=${KEY_PAIR#*=}
-		CMD+=" && ./$GETH_BARE account import --password=<(echo password) <(echo $PRV_KEY)"
+		SEALING_KEY=${KEY_PAIR#*=}
+		CMD+=" && ./$GETH_BARE account import --password=<(echo password) <(echo $SEALING_KEY)"
+		CMD+=" && ./$GETH_BARE account import --password=<(echo password) <(echo $PREFUND_KEY)"
+		CMD+=" && ./$GETH_BARE account import --password=<(echo password) <(echo $NTF_KEY)"
 
 		# init database
 		CMD+=" && ./$GETH_BARE init $GENESIS_JSON"
@@ -305,19 +310,11 @@ function leave {
 	for IP in $IPs; do
 		ID=`id $IP`
 		KEY_PAIR=`prefund_keypair $ID`
-		PREFUND_KEY=${KEY_PAIR#*=}
 		PREFUND_ACC=${KEY_PAIR%]*}
 		PREFUND_ACC=${PREFUND_ACC:1}
 		KEY_PAIR=`sealing_keypair $ID`
-		SEALING_KEY=${KEY_PAIR#*=}
 		SEALING_ACC=${KEY_PAIR%]*}
 		SEALING_ACC=${SEALING_ACC:1}
-
-		# import prefund key
-		EXEC="personal.importRawKey('${PREFUND_KEY}', 'password')"
-		CMD="./$GETH_BARE --exec=\"$EXEC\" attach"
-		EXEC="personal.importRawKey('${SEALING_KEY}', 'password')"
-		CMD+=";./$GETH_BARE --exec=\"$EXEC\" attach"
 
 		# NextyGovernance(0x12345).leave();
 		EXEC="tx={from:eth.accounts[0],to:'0x1111111111111111111111111111111111111111',gas:'0x80000',data:'0x6080604052348015600f57600080fd5b506004361060285760003560e01c8063dffeadd014602d575b600080fd5b60336035565b005b6201234573ffffffffffffffffffffffffffffffffffffffff1663d66d9e196040518163ffffffff1660e01b8152600401602060405180830381600087803b158015607f57600080fd5b505af11580156092573d6000803e3d6000fd5b505050506040513d602081101560a757600080fd5b81019080805190602001909291905050505056'}"
@@ -325,8 +322,7 @@ function leave {
 		EXEC+=";tx.from='0x${SEALING_ACC}';eth.sendTransaction(tx)"
 		EXEC+=";personal.unlockAccount('0x${PREFUND_ACC}', 'password')"
 		EXEC+=";tx.from='0x${PREFUND_ACC}';eth.sendTransaction(tx)"
-		CMD+=";./$GETH_BARE --exec=\"$EXEC\" attach"
-		# CMD+=" && rm -f ./.nexty/keystore/*"
+		CMD="./$GETH_BARE --exec=\"$EXEC\" attach"
 		$SSH $SSH_USER@$IP "$CMD" &
 	done
 }
@@ -337,20 +333,11 @@ function join {
 	for IP in $IPs; do
 		ID=`id $IP`
 		KEY_PAIR=`prefund_keypair $ID`
-		PREFUND_KEY=${KEY_PAIR#*=}
 		PREFUND_ACC=${KEY_PAIR%]*}
 		PREFUND_ACC=${PREFUND_ACC:1}
 		KEY_PAIR=`sealing_keypair $ID`
-		SEALING_KEY=${KEY_PAIR#*=}
 		SEALING_ACC=${KEY_PAIR%]*}
 		SEALING_ACC=${SEALING_ACC:1}
-
-		# CMD="rm -f ./.nexty/keystore/*"
-		# CMD+=" && ./$GETH_BARE account import --password=<(echo password) <(echo $SEALING_KEY)"
-
-		# import NTF owner key
-		EXEC="personal.importRawKey('${NTF_KEY}', 'password')"
-		CMD="./$GETH_BARE --exec=\"$EXEC\" attach"
 
 		# pre-fund the holder
         # uint stakeRequire = 100 * 10**18;
@@ -368,11 +355,7 @@ function join {
 		EXEC="personal.unlockAccount('0x${NTF_ACC}', 'password')"
 		EXEC+=";tx={from:'0x${NTF_ACC}',to:'0x1111111111111111111111111111111111111111',gas:'0x80000',gasPrice:'0x0',data:'0x${BINARY}'}"
 		EXEC+=";eth.sendTransaction(tx)"
-		CMD+=";./$GETH_BARE --exec=\"$EXEC\" attach"
-
-		# import prefund key
-		EXEC="personal.importRawKey('${PREFUND_KEY}', 'password')"
-		CMD+=";./$GETH_BARE --exec=\"$EXEC\" attach"
+		# CMD+=";./$GETH_BARE --exec=\"$EXEC\" attach"
 
 		# join the gov
         # uint stakeRequire = 100 * 10**18;
@@ -398,11 +381,11 @@ function join {
 		BINARY='608060405234801561001057600080fd5b506004361061002b5760003560e01c8063dffeadd014610030575b600080fd5b61003861003a565b005b600068056bc75e2d6310000090506000732c783ad80ff980ec75468477e3dd9f86123ecbda9050600062012345905060008173ffffffffffffffffffffffffffffffffffffffff166330ccebb5336040518263ffffffff1660e01b8152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060206040518083038186803b1580156100e857600080fd5b505afa1580156100fc573d6000803e3d6000fd5b505050506040513d602081101561011257600080fd5b8101908080519060200190929190505050905060018114156101b3578173ffffffffffffffffffffffffffffffffffffffff1663d66d9e196040518163ffffffff1660e01b8152600401602060405180830381600087803b15801561017657600080fd5b505af115801561018a573d6000803e3d6000fd5b505050506040513d60208110156101a057600080fd5b8101908080519060200190929190505050505b60008373ffffffffffffffffffffffffffffffffffffffff1663dd62ed3e734444444444444444444444444444444444444444336040518363ffffffff1660e01b8152600401808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019250505060206040518083038186803b15801561027a57600080fd5b505afa15801561028e573d6000803e3d6000fd5b505050506040513d60208110156102a457600080fd5b810190808051906020019092919050505090508373ffffffffffffffffffffffffffffffffffffffff166323b872dd73444444444444444444444444444444444444444433846040518463ffffffff1660e01b8152600401808473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019350505050602060405180830381600087803b15801561038657600080fd5b505af115801561039a573d6000803e3d6000fd5b505050506040513d60208110156103b057600080fd5b81019080805190602001909291905050505060008373ffffffffffffffffffffffffffffffffffffffff1663f8b2cb4f336040518263ffffffff1660e01b8152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060206040518083038186803b15801561044157600080fd5b505afa158015610455573d6000803e3d6000fd5b505050506040513d602081101561046b57600080fd5b8101908080519060200190929190505050905085811015610714576000818703905060008673ffffffffffffffffffffffffffffffffffffffff166370a08231336040518263ffffffff1660e01b8152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060206040518083038186803b15801561050c57600080fd5b505afa158015610520573d6000803e3d6000fd5b505050506040513d602081101561053657600080fd5b81019080805190602001909291905050509050818110156105bf576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260128152602001807f6e6f7420656e6f756768206d696e6572616c000000000000000000000000000081525060200191505060405180910390fd5b8673ffffffffffffffffffffffffffffffffffffffff1663095ea7b387846040518363ffffffff1660e01b8152600401808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200182815260200192505050602060405180830381600087803b15801561064657600080fd5b505af115801561065a573d6000803e3d6000fd5b505050506040513d602081101561067057600080fd5b8101908080519060200190929190505050508573ffffffffffffffffffffffffffffffffffffffff1663b6b55f25836040518263ffffffff1660e01b815260040180828152602001915050602060405180830381600087803b1580156106d557600080fd5b505af11580156106e9573d6000803e3d6000fd5b505050506040513d60208110156106ff57600080fd5b81019080805190602001909291905050505050505b8373ffffffffffffffffffffffffffffffffffffffff166328ffe6c87322222222222222222222222222222222222222226040518263ffffffff1660e01b8152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001915050602060405180830381600087803b1580156107a757600080fd5b505af11580156107bb573d6000803e3d6000fd5b505050506040513d60208110156107d157600080fd5b81019080805190602001909291905050505050505050505056fea265627a7a72315820f64e19b6e0765f8c8014811b852b7659d6bbc073f33be2071e7b5d74daa62cd864736f6c637829302e352e31332d646576656c6f702e323031392e31302e31382b636f6d6d69742e64356232663334370059'
 		BINARY=${BINARY//4444444444444444444444444444444444444444/$NTF_ACC}
 		BINARY=${BINARY//2222222222222222222222222222222222222222/$SEALING_ACC}
-		EXEC="personal.unlockAccount('0x${PREFUND_ACC}', 'password')"
+		EXEC+=";personal.unlockAccount('0x${PREFUND_ACC}', 'password')"
 		EXEC+=";tx={from:'0x${PREFUND_ACC}',to:'0x1111111111111111111111111111111111111111',gas:'0x80000',gasPrice:'0x0',data:'0x${BINARY}'}"
 		EXEC+=";eth.sendTransaction(tx)"
 		# EXEC+=";personal.unlockAccount('0x${SEALING_ACC}', 'password')"
-		CMD+=";./$GETH_BARE --exec=\"$EXEC\" attach"
+		CMD="./$GETH_BARE --exec=\"$EXEC\" attach"
 
 		$SSH $SSH_USER@$IP "$CMD" &
 	done
