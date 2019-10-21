@@ -95,7 +95,8 @@ INSTANCES=(
 : ${ETHSTATS:=nexty-devnet@stats.testnet.nexty.io:8080}
 : ${STAKE_REQUIRE:=100}
 : ${STAKE_LOCK_HEIGHT:=150}
-: ${TOKEN_OWNER:=000000270840d8ebdffc7d162193cc5ba1ad8707}
+: ${NTF_ACC:=000000270840d8ebdffc7d162193cc5ba1ad8707}
+: ${NTF_KEY:=6fc22cccf0de9bb7fb63fa2926bdc5fc551d0ef5f496ff8a993ada505dd626d8}
 : ${PREFUND_ADDR:=000007e01c1507147a0e338db1d029559db6cb19}
 	# private: cd4bdb10b75e803d621f64cc22bffdfc5c4b9f8e63e67820cc27811664d43794
 	# public:  a83433c26792c93eb56269976cffeb889636ff3f6193b60793fa98c74d9ccdbf4e3a80e2da6b86712e014441828520333828ac4f4605b5d0a8af544f1c5ca67e
@@ -103,11 +104,11 @@ INSTANCES=(
 PREFUND_ADDR=95e2fcBa1EB33dc4b8c6DCBfCC6352f0a253285d
 	# private: a0cf475a29e527dcb1c35f66f1d78852b14d5f5109f75fa4b38fbe46db2022a5
 : ${BLOCK_TIME:=1}
-: ${EPOCH:=10}
-: ${THANGLONG_BLOCK:=10}
+: ${EPOCH:=20}
+: ${THANGLONG_BLOCK:=40}
 : ${THANGLONG_EPOCH:=10}
 
-: ${ENDURIO_BLOCK:=20}
+: ${ENDURIO_BLOCK:=80}
 : ${LEAK_DURATION:=64}
 : ${APP_CONFIRMS:=8}
 : ${RANDOM_ITERATION:=3000000}
@@ -222,7 +223,7 @@ function init {
 		CMD+=" && rm -rf ./.nexty"
 
 		# import_account
-		KEY_PAIR=`head -n$((ID+1)) $KP_FILE | tail -n1`
+		KEY_PAIR=`sealing_keypair $ID`
 		PRV_KEY=${KEY_PAIR#*=}
 		CMD+=" && ./$GETH_BARE account import --password=<(echo password) <(echo $PRV_KEY)"
 
@@ -299,19 +300,149 @@ function peer {
 	done
 }
 
+function leave {
+	IPs=`ips $@`
+	for IP in $IPs; do
+		ID=`id $IP`
+		KEY_PAIR=`prefund_keypair $ID`
+		PREFUND_KEY=${KEY_PAIR#*=}
+		PREFUND_ACC=${KEY_PAIR%]*}
+		PREFUND_ACC=${PREFUND_ACC:1}
+		KEY_PAIR=`sealing_keypair $ID`
+		SEALING_KEY=${KEY_PAIR#*=}
+		SEALING_ACC=${KEY_PAIR%]*}
+		SEALING_ACC=${SEALING_ACC:1}
+
+		# import prefund key
+		EXEC="personal.importRawKey('${PREFUND_KEY}', 'password')"
+		CMD="./$GETH_BARE --exec=\"$EXEC\" attach"
+		EXEC="personal.importRawKey('${SEALING_KEY}', 'password')"
+		CMD+=";./$GETH_BARE --exec=\"$EXEC\" attach"
+
+		# NextyGovernance(0x12345).leave();
+		EXEC="tx={from:eth.accounts[0],to:'0x1111111111111111111111111111111111111111',gas:'0x80000',data:'0x6080604052348015600f57600080fd5b506004361060285760003560e01c8063dffeadd014602d575b600080fd5b60336035565b005b6201234573ffffffffffffffffffffffffffffffffffffffff1663d66d9e196040518163ffffffff1660e01b8152600401602060405180830381600087803b158015607f57600080fd5b505af11580156092573d6000803e3d6000fd5b505050506040513d602081101560a757600080fd5b81019080805190602001909291905050505056'}"
+		EXEC+=";personal.unlockAccount('0x${SEALING_ACC}', 'password')"
+		EXEC+=";tx.from='0x${SEALING_ACC}';eth.sendTransaction(tx)"
+		EXEC+=";personal.unlockAccount('0x${PREFUND_ACC}', 'password')"
+		EXEC+=";tx.from='0x${PREFUND_ACC}';eth.sendTransaction(tx)"
+		CMD+=";./$GETH_BARE --exec=\"$EXEC\" attach"
+		# CMD+=" && rm -f ./.nexty/keystore/*"
+		$SSH $SSH_USER@$IP "$CMD" &
+	done
+}
+
+# join $1 $2
+function join {
+	IPs=`ips $@`
+	for IP in $IPs; do
+		ID=`id $IP`
+		KEY_PAIR=`prefund_keypair $ID`
+		PREFUND_KEY=${KEY_PAIR#*=}
+		PREFUND_ACC=${KEY_PAIR%]*}
+		PREFUND_ACC=${PREFUND_ACC:1}
+		KEY_PAIR=`sealing_keypair $ID`
+		SEALING_KEY=${KEY_PAIR#*=}
+		SEALING_ACC=${KEY_PAIR%]*}
+		SEALING_ACC=${SEALING_ACC:1}
+
+		# CMD="rm -f ./.nexty/keystore/*"
+		# CMD+=" && ./$GETH_BARE account import --password=<(echo password) <(echo $SEALING_KEY)"
+
+		# import NTF owner key
+		EXEC="personal.importRawKey('${NTF_KEY}', 'password')"
+		CMD="./$GETH_BARE --exec=\"$EXEC\" attach"
+
+		# pre-fund the holder
+        # uint stakeRequire = 100 * 10**18;
+        # IERC20 ntf = IERC20(0x2c783AD80ff980EC75468477E3dD9f86123EcBDa);
+        # NextyGovernance gov = NextyGovernance(0x12345);
+        # uint deposited = gov.getBalance(0x2222222222222222222222222222222222222222);
+        # uint balance = ntf.balanceOf(0x2222222222222222222222222222222222222222);
+        # if (stakeRequire <= deposited + balance) {
+        #     return;
+        # }
+        # uint need = stakeRequire - deposited - balance; // safe
+        # ntf.approve(0x2222222222222222222222222222222222222222, need);
+		BINARY='608060405234801561001057600080fd5b506004361061002b5760003560e01c8063dffeadd014610030575b600080fd5b61003861003a565b005b600068056bc75e2d6310000090506000732c783ad80ff980ec75468477e3dd9f86123ecbda9050600062012345905060008173ffffffffffffffffffffffffffffffffffffffff1663f8b2cb4f7322222222222222222222222222222222222222226040518263ffffffff1660e01b8152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060206040518083038186803b1580156100fc57600080fd5b505afa158015610110573d6000803e3d6000fd5b505050506040513d602081101561012657600080fd5b8101908080519060200190929190505050905060008373ffffffffffffffffffffffffffffffffffffffff166370a082317322222222222222222222222222222222222222226040518263ffffffff1660e01b8152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060206040518083038186803b1580156101cc57600080fd5b505afa1580156101e0573d6000803e3d6000fd5b505050506040513d60208110156101f657600080fd5b81019080805190602001909291905050509050808201851161021c575050505050610303565b6000818387030390508473ffffffffffffffffffffffffffffffffffffffff1663095ea7b3732222222222222222222222222222222222222222836040518363ffffffff1660e01b8152600401808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200182815260200192505050602060405180830381600087803b1580156102c057600080fd5b505af11580156102d4573d6000803e3d6000fd5b505050506040513d60208110156102ea57600080fd5b8101908080519060200190929190505050505050505050505b56'
+		BINARY=${BINARY//2222222222222222222222222222222222222222/$PREFUND_ACC}
+		EXEC="personal.unlockAccount('0x${NTF_ACC}', 'password')"
+		EXEC+=";tx={from:'0x${NTF_ACC}',to:'0x1111111111111111111111111111111111111111',gas:'0x80000',gasPrice:'0x0',data:'0x${BINARY}'}"
+		EXEC+=";eth.sendTransaction(tx)"
+		CMD+=";./$GETH_BARE --exec=\"$EXEC\" attach"
+
+		# import prefund key
+		EXEC="personal.importRawKey('${PREFUND_KEY}', 'password')"
+		CMD+=";./$GETH_BARE --exec=\"$EXEC\" attach"
+
+		# join the gov
+        # uint stakeRequire = 100 * 10**18;
+        # IERC20 ntf = IERC20(0x2c783AD80ff980EC75468477E3dD9f86123EcBDa);
+        # NextyGovernance gov = NextyGovernance(0x12345);
+        # uint status = gov.getStatus(msg.sender);
+        # if (status == 1) { // ACTIVE
+        #     gov.leave();
+        # }
+        # uint allowance = ntf.allowance(0x4444444444444444444444444444444444444444, msg.sender);
+        # ntf.transferFrom(0x4444444444444444444444444444444444444444, msg.sender, allowance);
+        # uint deposited = gov.getBalance(msg.sender);
+        # if (deposited < stakeRequire) {
+        #     uint need = stakeRequire - deposited;
+        #     uint balance = ntf.balanceOf(msg.sender);
+        #     if (balance < need) {
+        #         revert("not enough mineral");
+        #     }
+        #     ntf.approve(address(gov), need);
+        #     gov.deposit(need);
+        # }
+        # gov.join(0x2222222222222222222222222222222222222222);
+		BINARY='608060405234801561001057600080fd5b506004361061002b5760003560e01c8063dffeadd014610030575b600080fd5b61003861003a565b005b600068056bc75e2d6310000090506000732c783ad80ff980ec75468477e3dd9f86123ecbda9050600062012345905060008173ffffffffffffffffffffffffffffffffffffffff166330ccebb5336040518263ffffffff1660e01b8152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060206040518083038186803b1580156100e857600080fd5b505afa1580156100fc573d6000803e3d6000fd5b505050506040513d602081101561011257600080fd5b8101908080519060200190929190505050905060018114156101b3578173ffffffffffffffffffffffffffffffffffffffff1663d66d9e196040518163ffffffff1660e01b8152600401602060405180830381600087803b15801561017657600080fd5b505af115801561018a573d6000803e3d6000fd5b505050506040513d60208110156101a057600080fd5b8101908080519060200190929190505050505b60008373ffffffffffffffffffffffffffffffffffffffff1663dd62ed3e734444444444444444444444444444444444444444336040518363ffffffff1660e01b8152600401808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019250505060206040518083038186803b15801561027a57600080fd5b505afa15801561028e573d6000803e3d6000fd5b505050506040513d60208110156102a457600080fd5b810190808051906020019092919050505090508373ffffffffffffffffffffffffffffffffffffffff166323b872dd73444444444444444444444444444444444444444433846040518463ffffffff1660e01b8152600401808473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019350505050602060405180830381600087803b15801561038657600080fd5b505af115801561039a573d6000803e3d6000fd5b505050506040513d60208110156103b057600080fd5b81019080805190602001909291905050505060008373ffffffffffffffffffffffffffffffffffffffff1663f8b2cb4f336040518263ffffffff1660e01b8152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060206040518083038186803b15801561044157600080fd5b505afa158015610455573d6000803e3d6000fd5b505050506040513d602081101561046b57600080fd5b8101908080519060200190929190505050905085811015610714576000818703905060008673ffffffffffffffffffffffffffffffffffffffff166370a08231336040518263ffffffff1660e01b8152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060206040518083038186803b15801561050c57600080fd5b505afa158015610520573d6000803e3d6000fd5b505050506040513d602081101561053657600080fd5b81019080805190602001909291905050509050818110156105bf576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260128152602001807f6e6f7420656e6f756768206d696e6572616c000000000000000000000000000081525060200191505060405180910390fd5b8673ffffffffffffffffffffffffffffffffffffffff1663095ea7b387846040518363ffffffff1660e01b8152600401808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200182815260200192505050602060405180830381600087803b15801561064657600080fd5b505af115801561065a573d6000803e3d6000fd5b505050506040513d602081101561067057600080fd5b8101908080519060200190929190505050508573ffffffffffffffffffffffffffffffffffffffff1663b6b55f25836040518263ffffffff1660e01b815260040180828152602001915050602060405180830381600087803b1580156106d557600080fd5b505af11580156106e9573d6000803e3d6000fd5b505050506040513d60208110156106ff57600080fd5b81019080805190602001909291905050505050505b8373ffffffffffffffffffffffffffffffffffffffff166328ffe6c87322222222222222222222222222222222222222226040518263ffffffff1660e01b8152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001915050602060405180830381600087803b1580156107a757600080fd5b505af11580156107bb573d6000803e3d6000fd5b505050506040513d60208110156107d157600080fd5b81019080805190602001909291905050505050505050505056fea265627a7a72315820f64e19b6e0765f8c8014811b852b7659d6bbc073f33be2071e7b5d74daa62cd864736f6c637829302e352e31332d646576656c6f702e323031392e31302e31382b636f6d6d69742e64356232663334370059'
+		BINARY=${BINARY//4444444444444444444444444444444444444444/$NTF_ACC}
+		BINARY=${BINARY//2222222222222222222222222222222222222222/$SEALING_ACC}
+		EXEC="personal.unlockAccount('0x${PREFUND_ACC}', 'password')"
+		EXEC+=";tx={from:'0x${PREFUND_ACC}',to:'0x1111111111111111111111111111111111111111',gas:'0x80000',gasPrice:'0x0',data:'0x${BINARY}'}"
+		EXEC+=";eth.sendTransaction(tx)"
+		# EXEC+=";personal.unlockAccount('0x${SEALING_ACC}', 'password')"
+		CMD+=";./$GETH_BARE --exec=\"$EXEC\" attach"
+
+		$SSH $SSH_USER@$IP "$CMD" &
+	done
+}
+
+# id IP
+function id {
+	IPs=(`ips`)
+	for ID in "${!IPs[@]}"; do
+		IP=${IPs[ID]}
+		if [ "$IP" == "$1" ]; then
+			echo $ID
+			return
+		fi
+	done
+}
+
+function sealing_keypair {
+	ID=$1
+	head -n$((ID+1)) $KP_FILE | tail -n1
+}
+
 function sealing_addresses {
 	N=$1
 	for ((ID=0; ID<N; ID++)); do
-		KEY_PAIR=`head -n$((ID+1)) $KP_FILE | tail -n1`
+		KEY_PAIR=`sealing_keypair $ID`
 		ACC=${KEY_PAIR%]*}
 		echo ${ACC:1}
 	done
 }
 
+function prefund_keypair {
+	ID=$1
+	tail -n$((ID+1)) $KP_FILE | head -n1
+}
+
 function prefund_addresses {
 	N=$1
 	for ((ID=0; ID<N; ID++)); do
-		KEY_PAIR=`tail -n$((ID+1)) $KP_FILE | head -n1`
+		KEY_PAIR=`prefund_keypair $ID`
 		ACC=${KEY_PAIR%]*}
 		echo ${ACC:1}
 	done
@@ -333,7 +464,7 @@ function generate_genesis {
 		echo $THANGLONG_EPOCH
 		echo $STAKE_REQUIRE
 		echo $STAKE_LOCK_HEIGHT
-		echo $TOKEN_OWNER
+		echo $NTF_ACC
 
 		echo $ENDURIO_BLOCK
 		echo $LEAK_DURATION
@@ -440,7 +571,7 @@ function load {
 	deploy_once $IPs
 	deploy $IPs
 	init $IPs
-	start $IPs
+	# start $IPs
 }
 
 function launch_instance {
