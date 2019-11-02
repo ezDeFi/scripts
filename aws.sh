@@ -88,6 +88,7 @@ INSTANCES=(
 : ${SSH_USER:=ubuntu}
 : ${NET_DIR:=/tmp/aws.sh/$NETWORK_NAME}
 : ${KP_FILE:=../scripts/keypairs}
+: ${GENESIS_JSON:=$NETWORK_NAME.json}
 
 : ${VERBOSITY:=5}
 : ${MAX_PEER:=13}
@@ -203,15 +204,20 @@ function deploy_once {
 	done
 }
 
-function init {
+function generate {
 	IPs=`ips $@`
 	ALL=(`ips`)
 
 	# generate and deploy genesis.json
 	GENESIS_JSON=`generate_genesis ${#ALL[@]}`
-	$PSCP -h <(printf "%s\n" ${ALL[@]}) -l $SSH_USER $GENESIS_JSON /home/ubuntu/
-
 	mv $GENESIS_JSON /tmp/ # for debug
+}
+
+function init {
+	IPs=`ips $@`
+	ALL=(`ips`)
+
+	$PSCP -h <(printf "%s\n" ${ALL[@]}) -l $SSH_USER /tmp/$GENESIS_JSON /home/ubuntu/
 
 	for IP in $IPs; do
 		ID=`id $IP`
@@ -473,7 +479,6 @@ function generate_genesis {
 		echo
 	) >| /tmp/puppeth.input
 
-	GENESIS_JSON=$NETWORK_NAME.json
 	rm -f $NETWORK_NAME-*.json ~/.puppeth/* /tmp/$GENESIS_JSON
 	$PUPPETH_CMD --network=$NETWORK_NAME < /tmp/puppeth.input >/dev/null
 
@@ -526,7 +531,6 @@ function ssh_ready {
 
 function load {
 	local COUNT=${1:-1}
-	rm -rf $NET_DIR
 	mkdir -p $NET_DIR
 
 	for REGION in "${!INSTANCES[@]}"; do
@@ -556,6 +560,7 @@ function load {
 
 	deploy_once $IPs
 	deploy $IPs
+	generate $IPs
 	init $IPs
 	# start $IPs
 }
@@ -574,16 +579,19 @@ function launch_instance {
 			--output=text | tr "\n" " " | trim
 }
 
+# terminate all
 function terminate {
 	if [ "$1" = "all" ]; then
 		for REGION in "${!IMAGE_ID[@]}"; do
-			_terminate &
+			terminate_region &
 		done
 		wait
+		rm -rf $NET_DIR
 	fi
 }
 
-function _terminate {
+# REGION=abc terminate_region
+function terminate_region {
 	IDs=`instance_ids Name ${1:-$INSTANCE_NAME}`
 
 	if [ -z "$IDs" ]; then
