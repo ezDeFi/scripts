@@ -313,6 +313,13 @@ function peer {
 	done
 }
 
+function rejoin {
+	IPs=`ips $@`
+	leave $IPs
+	wait
+	join $IPs
+}
+
 function leave {
 	IPs=`ips $@`
 	for IP in $IPs; do
