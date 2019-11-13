@@ -1,6 +1,6 @@
 #!/bin/bash
 #Config Gonex Download link
-GONEX_RELEASE=https://github.com/nextyio/gonex/releases/download/v2.0.2/gonex.gz
+GONEX_RELEASE=https://github.com/nextyio/gonex/releases/download/v3.0.3/gonex.gz
 GONEXSTATS=nty2018@stats.nexty.io
 ENODEs="enode://286d9b5690f0c2a322f5bf31775fb06f2992d3de001d9a9ab62513b813d48f5607a959a8e499f37153f2e78c74c751f1756e56588d02d032c1c4a92c002229ba@35.187.233.103:33333
 enode://f3a6df4d7a1c1566f54deb0449770a88403d03313911e08af88d312011de7234d4a6231073678bacbb93df036d5f48e5c419cf6a58cda7fff0a04d6786175c37@139.180.137.154:33333
@@ -15,10 +15,13 @@ else
 fi
 
 function download {
+    systemctl $USER_PARAM stop gonex
+    rm -rf $REMOTE_HOME_PATH/nexty/gonex
     mkdir -p $REMOTE_HOME_PATH/nexty/.gonex
     wget -O $REMOTE_HOME_PATH/nexty/gonex.gz $GONEX_RELEASE
     gunzip -f $REMOTE_HOME_PATH/nexty/gonex.gz
     chmod +x $REMOTE_HOME_PATH/nexty/gonex
+    systemctl $USER_PARAM start gonex
 }
 
 function account {
