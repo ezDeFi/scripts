@@ -183,7 +183,7 @@ function deploy {
 
 	# strip and deploy gonex binary
 	strip -s $BIN_PATH/$GETH_CMD
-	$PSCP -h <(printf "%s\n" $IPs) -l ubuntu $BIN_PATH/$GETH_CMD /home/ubuntu/
+	$PSCP -h <(printf "%s\n" $IPs) -l ubuntu $BIN_PATH/$GETH_CMD /home/ubuntu/$GETH_CMD.new
 }
 
 function redeploy {
@@ -232,8 +232,10 @@ function init {
 		# set remote hostname
 		CMD="sudo hostname ${IP//\./-}"
 
+		# move the newly deployed binary
+		CMD+=";mv ./$GETH_CMD.new ./$GETH_CMD"
 		# reset gonex database
-		CMD+=" && rm -rf ./.nexty"
+		CMD+=";rm -rf ./.nexty"
 
 		# import_accounts
 		KEY_PAIR=`prefund_keypair $ID`
@@ -269,7 +271,7 @@ function start {
 			CMD="$CMD --rollback=$ROLLBACK"
 		fi
 
-		$SSH $SSH_USER@$IP "nohup ./$CMD --ethstats=$IP:$ETHSTATS &>./$CLIENT.log &"
+		$SSH $SSH_USER@$IP "mv ./$GETH_CMD.new ./$GETH_CMD; nohup ./$CMD --ethstats=$IP:$ETHSTATS &>./$CLIENT.log &"
 
 		# fetch enode once
 		if [ ! -s $NET_DIR/$IP ]; then
