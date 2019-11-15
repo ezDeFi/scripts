@@ -221,7 +221,7 @@ function init {
 	IPs=`ips $@`
 	ALL=(`ips`)
 
-	$PSCP -h <(printf "%s\n" ${ALL[@]}) -l $SSH_USER /tmp/$GENESIS_JSON /home/ubuntu/
+	$PSCP -h <(printf "%s\n" $IPs) -l $SSH_USER /tmp/$GENESIS_JSON /home/ubuntu/
 
 	for IP in $IPs; do
 		ID=`id $IP`
