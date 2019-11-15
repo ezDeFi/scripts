@@ -345,6 +345,20 @@ function peer {
 	done
 }
 
+function log {
+	IPs=`ips $@`
+	for IP in $IPs; do
+		$SSH $SSH_USER@$IP "tail -n2048 -F ./$CLIENT.log"
+	done
+}
+
+function less {
+	IPs=`ips $@`
+	for IP in $IPs; do
+		$SSH -t $SSH_USER@$IP "less +G ./$CLIENT.log"
+	done
+}
+
 function rejoin {
 	IPs=`ips $@`
 	leave $IPs
