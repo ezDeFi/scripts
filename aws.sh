@@ -622,11 +622,7 @@ function load {
 	done
 	wait
 
-	IPs=
-	for F in $NET_DIR/*; do
-		IP=`basename $F`
-		IPs="$IPs $IP"
-	done
+	IPs=`ips`
 
 	swap_on $IPs
 	deploy_once $IPs
