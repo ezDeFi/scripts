@@ -189,9 +189,8 @@ function deploy {
 function redeploy {
 	IPs=`ips $@`
 
-	stop $IPs
 	deploy $IPs
-	start $IPs
+	restart $IPs
 }
 
 function deploy_once {
@@ -278,12 +277,41 @@ function start {
 			NODEKEY=`$SSH $SSH_USER@$IP "./$BOOTNODE_CMD -nodekey=./.nexty/gonex/nodekey -writeaddress"`
 			echo $NODEKEY >| $NET_DIR/$IP
 		fi
+
+		sleep 3s
+		peer $IP
 	) &
 	done
-	wait
+}
 
-	sleep 3s
-	peer $IPs
+function restart {
+	IPs=`ips $@`
+
+	for IP in $IPs; do
+	(
+		# random % of [0,32768)
+		if [ "$RANDOM" -le 16384 ]; then
+			CMD="$GETH --vdf.gen=$VDF_CLI"
+		else
+			CMD="$GETH"
+		fi
+
+		if [ ! -z "$ROLLBACK" ]; then
+			CMD="$CMD --rollback=$ROLLBACK"
+		fi
+
+		$SSH $SSH_USER@$IP "(killall -q --signal SIGINT $GETH_CMD && sleep 5s); mv ./$GETH_CMD.new ./$GETH_CMD; nohup ./$CMD --ethstats=$IP:$ETHSTATS &>./$CLIENT.log &"
+
+		# fetch enode once
+		if [ ! -s $NET_DIR/$IP ]; then
+			NODEKEY=`$SSH $SSH_USER@$IP "./$BOOTNODE_CMD -nodekey=./.nexty/gonex/nodekey -writeaddress"`
+			echo $NODEKEY >| $NET_DIR/$IP
+		fi
+
+		sleep 5s
+		peer $IP
+	) &
+	done
 }
 
 function stop {
@@ -293,13 +321,6 @@ function stop {
 		$SSH $SSH_USER@$IP killall -q --signal SIGINT $GETH_CMD &
 	done
 	wait
-}
-
-# restart InstantName
-function restart {
-	IPs=`ips $@`
-	stop $IPs
-	start $IPs
 }
 
 function peer {
