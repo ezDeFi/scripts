@@ -168,7 +168,7 @@ function ips {
 		done
 	elif [ "$1" == "random" ]; then
 		for F in $NET_DIR/*; do
-			if [ "$RANDOM" -le ${2:-16384} ]; then
+			if [ "$RANDOM" -le $((32768/${2:-2})) ]; then
 				IP=`basename $F`
 				printf "$IP "
 			fi
