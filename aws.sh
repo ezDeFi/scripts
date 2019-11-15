@@ -558,12 +558,8 @@ function load {
 		IPs=`instance_ip $IDs`
 		for IP in $IPs; do
 			touch $NET_DIR/$IP
-			(
 				# wait for SSH port to be ready
-				ssh_ready $SSH_USER@$IP
-				# swap on
-				$SSH $SSH_USER@$IP "sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile"
-			) &
+			ssh_ready $SSH_USER@$IP &
 		done
 		wait
 	) &
@@ -576,11 +572,28 @@ function load {
 		IPs="$IPs $IP"
 	done
 
+	swap_on $IPs
 	deploy_once $IPs
 	deploy $IPs
 	generate $IPs
 	init $IPs
 	# start $IPs
+}
+
+function swap_on {
+	IPs=`ips $@`
+	for IP in $IPs; do
+		# swap on
+		$SSH $SSH_USER@$IP "sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile" &
+	done
+}
+
+function swap_off {
+	IPs=`ips $@`
+	for IP in $IPs; do
+		# swap off
+		$SSH $SSH_USER@$IP "sudo swapoff /swapfile && sudo rm -f /swapfile" &
+	done
 }
 
 function launch_instance {
