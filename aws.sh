@@ -388,6 +388,27 @@ function leave {
 	done
 }
 
+function spam {
+	IPs=`ips $@`
+	IPs=`ips $@`
+	for IP in $IPs; do
+		ID=`id $IP`
+		KEY_PAIR=`prefund_keypair $ID`
+		PREFUND_ACC=${KEY_PAIR%]*}
+		PREFUND_ACC=${PREFUND_ACC:1}
+		KEY_PAIR=`sealing_keypair $ID`
+		SEALING_ACC=${KEY_PAIR%]*}
+		SEALING_ACC=${SEALING_ACC:1}
+
+		EXEC="personal.unlockAccount('0x${SEALING_ACC}', 'password')"
+		EXEC+=";tx={from:'0x${SEALING_ACC}',to:'0x${PREFUND_ACC}',gas:'0x80000',gasPrice:'0x0'}"
+		EXEC+=";eth.sendTransaction(tx)"
+
+		CMD="./$GETH_BARE --exec=\"$EXEC\" attach"
+		$SSH $SSH_USER@$IP "$CMD" &
+	done
+}
+
 # join $1 $2
 function join {
 	IPs=`ips $@`
