@@ -134,37 +134,9 @@ function prefund_addresses {
 	done
 }
 
-function create_account {
-	IDs=($@)
-	for ID in "${IDs[@]}"; do
-		ACCOUNT=`$GETH_CMD account new --password=<(echo password) --datadir=$DATA_DIR/$ID`
-		ACCOUNT=`echo "${ACCOUNT##*0x}" | head -n1`
-		ACCOUNT="${ACCOUNT#*\{}"
-		ACCOUNT="${ACCOUNT%\}*}"
-		echo $ACCOUNT
-	done
-}
-
-# load pre-fund account from keystore folder
-function load_pre_fund_accounts {
-	arr=()
-	for file in ./.$CLIENT/keystore/UTC--*; do
-		if [[ -f $file ]]; then
-			filename=$(basename -- "$file")
-			arr=(${arr[@]} ${filename:37:78})
-		fi
-	done
-	echo "${arr[@]}"
-}
-
-function test_load_pre_fund_accounts {
-	echo `load_pre_fund_accounts`
-}
-
 # generate the genesis json file
 function generate_genesis {
 	ACs=($@)
-	#PFACs=(`load_pre_fund_accounts`)
 
 	(	set +x
 		echo 2
@@ -196,9 +168,6 @@ function generate_genesis {
 
 		echo $PREFUND_ADDR
 		prefund_addresses 128
-		#for PFAC in "${PFACs[@]}"; do
-		#	echo $PFAC
-		#done
 		echo
 		echo no # Should the precompile-addresses (0x1 .. 0xff) be pre-funded with 1 wei?
 		echo $NETWORK_ID
