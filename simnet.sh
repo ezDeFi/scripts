@@ -222,7 +222,7 @@ function console {
 	$GETH_CMD --datadir=$DATA_DIR/$ID attach
 }
 
-function peers {
+function peer {
 	IDs=($@)
 	for ID in "${IDs[@]}"; do
 		for D in `find $DATA_DIR -mindepth 1 -maxdepth 1 -type d`
@@ -260,7 +260,7 @@ function start {
 		# mesh peering
 		if [ -z "$BOOTNODE_STRING" ]; then
 		(	sleep $((3+LAST_ID))s
-			peers $ID
+			peer $ID
 		)&
 
 		bash -ic "nohup $CMD &>$DATA_DIR/$ID/$CLIENT.log &"
