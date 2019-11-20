@@ -3,10 +3,11 @@
 # A POSIX variable
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 ROLLBACK=
+MS=
 
 # Initialize our own variables:
 
-while getopts "h?r:" opt; do
+while getopts "h?r:m:" opt; do
     case "$opt" in
     h|\?)
         echo "$(basename ""$0"") [-h|-?] command"
@@ -14,6 +15,9 @@ while getopts "h?r:" opt; do
         ;;
 	r)
 		ROLLBACK=$OPTARG
+		;;
+	m)
+		MS=$OPTARG
 		;;
     esac
 done
@@ -105,12 +109,18 @@ function reload {
 function import_account {
 	IDs=($@)
 	: ${KP_FILE:=../scripts/keypairs}
+	: ${MS:=1}
 	for ID in "${IDs[@]}"; do
-		KEY_PAIR=`head -n$((ID+1)) $KP_FILE | tail -n1`
+		for ((i=0; i<MS; i++)); do
+			K=$((i+ID+1))
+			KEY_PAIR=`head -n$K $KP_FILE | tail -n1`
 		PRV_KEY=${KEY_PAIR#*=}
+			ACC=${KEY_PAIR%]*}
 		$GETH_CMD --datadir=$DATA_DIR/$ID account import --password=<(echo password) <(echo $PRV_KEY)
-		ACC=${KEY_PAIR%]*}
+			if ((i==0)); then
 		echo ${ACC:1}
+			fi
+		done
 	done
 }
 
@@ -238,7 +248,14 @@ function peer {
 
 function start {
 	IDs=($@)
-	CMD_BASE="$GETH --mine --unlock=0 --password=<(echo password)"
+	: ${MS:=1}
+	UNLOCKs="0"
+	PASSWDs="echo password"
+	for ((i=1; i<MS; ++)); do
+		UNLOCKs="$UNLOCKs,$i"
+		PASSWDs="$PASSWDs;echo password"
+	done
+	CMD_BASE="$GETH --mine --password=<($PASSWDs) --unlock=$UNLOCKs"
 	# add --allow-insecure-unlock for geth 1.9+
 	$GETH --help | grep "allow-insecure-unlock" && CMD_BASE="$CMD_BASE --allow-insecure-unlock"
 	if [ ! -z "$BOOTNODE_STRING" ]; then
