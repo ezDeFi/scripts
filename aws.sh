@@ -345,14 +345,22 @@ function peer {
 	done
 }
 
-function log {
+function logpull {
+	IPs=`ips $@`
+	mkdir -p /tmp/logs
+	for IP in $IPs; do
+		$SCP $SSH_USER@$IP:./$CLIENT.log /tmp/logs/$IP.log
+	done
+}
+
+function logtail {
 	IPs=`ips $@`
 	for IP in $IPs; do
 		$SSH $SSH_USER@$IP "tail -n2048 -F ./$CLIENT.log"
 	done
 }
 
-function less {
+function logless {
 	IPs=`ips $@`
 	for IP in $IPs; do
 		$SSH -t $SSH_USER@$IP "less +G ./$CLIENT.log"
