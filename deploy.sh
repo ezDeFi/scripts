@@ -1,5 +1,10 @@
 #!/bin/bash
-#Config Gonex Download link
+# Config Gonex Download link
+# Run this command from terminal to deploy gonex
+# wget -O - https://raw.githubusercontent.com/nextyio/scripts/master/deploy.sh | bash
+# Or run this command if you want to update binary only
+# wget -O - https://raw.githubusercontent.com/nextyio/scripts/master/deploy.sh | bash -s download
+
 GONEX_RELEASE=https://github.com/nextyio/gonex/releases/download/v3.1.4/gonex-3.1.4.gz
 GONEXSTATS=nty2018@stats.nexty.io
 ENODEs="enode://286d9b5690f0c2a322f5bf31775fb06f2992d3de001d9a9ab62513b813d48f5607a959a8e499f37153f2e78c74c751f1756e56588d02d032c1c4a92c002229ba@35.187.233.103:33333
