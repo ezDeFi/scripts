@@ -4,13 +4,14 @@
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 ROLLBACK=
 MS=
+UL=
 
 # Initialize our own variables:
 
-while getopts "h?r:m:" opt; do
+while getopts "h?r:m:u:" opt; do
     case "$opt" in
     h|\?)
-        echo "$(basename ""$0"") [-h|-?] command"
+        echo "$(basename ""$0"") [-h|-?|-m MS|-u UL] command"
         exit 0
         ;;
 	r)
@@ -18,6 +19,9 @@ while getopts "h?r:m:" opt; do
 		;;
 	m)
 		MS=$OPTARG
+		;;
+	u)
+		UL=$OPTARG
 		;;
     esac
 done
@@ -33,8 +37,8 @@ shift $((OPTIND-1))
 : ${NETWORK_NAME:=simnet}
 : ${NETWORK_ID:=111111}
 : ${BINARY_POSTFIX:=}
-#ETHSTATS=nexty-devnet@localhost:8080
-#ETHSTATS=nty2018@stats.nexty.io:80
+# ETHSTATS=nexty-devnet@localhost:8080
+#ETHSTATS=nty2018@stats.nexty.io
 : ${ETHSTATS:=nexty-devnet@stats.testnet.nexty.io:8080}
 : ${STAKE_REQUIRE:=100}
 : ${STAKE_LOCK_HEIGHT:=150}
@@ -46,11 +50,11 @@ shift $((OPTIND-1))
 PREFUND_ADDR=95e2fcBa1EB33dc4b8c6DCBfCC6352f0a253285d
 	# private: a0cf475a29e527dcb1c35f66f1d78852b14d5f5109f75fa4b38fbe46db2022a5
 : ${BLOCK_TIME:=1}
-: ${EPOCH:=10}
-: ${THANGLONG_BLOCK:=10}
+: ${EPOCH:=20}
+: ${THANGLONG_BLOCK:=20}
 : ${THANGLONG_EPOCH:=10}
 
-: ${ENDURIO_BLOCK:=20}
+: ${ENDURIO_BLOCK:=23}
 : ${LEAK_DURATION:=64}
 : ${APP_CONFIRMS:=8}
 : ${RANDOM_ITERATION:=3000000}
@@ -62,6 +66,8 @@ PREFUND_ADDR=95e2fcBa1EB33dc4b8c6DCBfCC6352f0a253285d
 # : ${ABSORPTION_EXPIRATION:=26}
 # : ${SLASHING_DURATION:=13}
 # : ${LOCKDOWN_EXPIRATION:=39}
+
+: ${MELINH_BLOCK:=27}
 
 OUTPUT_TYPE=table
 
@@ -76,10 +82,13 @@ BOOTNODE_STRING=
 : ${PUPPETH_CMD:=$BIN_PATH/puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=$BIN_PATH/bootnode$BINARY_POSTFIX}
 #GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
-GETH="$GETH_CMD --networkid=$NETWORK_ID --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0 --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --miner.recommit=500ms"
+GETH="$GETH_CMD --networkid=$NETWORK_ID  --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --miner.recommit=500ms"
+GETH="$GETH --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0"
+# GETH="$GETH --ws --wsapi=db,eth,net,web3,personal --wsorigins=\"*\" --wsaddr=0.0.0.0"
 GETH="$GETH --syncmode=fast"
+# GETH="$GETH --gcmode=archive"
 GETH="$GETH --vdf.gen=vdf-cli"
-GETH="$GETH --price.url=http://localhost:3000/price/NUSD_USD"
+# GETH="$GETH --price.url=http://localhost:3000/price/NUSD_USD"
 #GETH="$GETH --txpool.spammyage=0"
 
 function trim {
@@ -114,11 +123,11 @@ function import_account {
 		for ((i=0; i<MS; i++)); do
 			K=$((i+ID+1))
 			KEY_PAIR=`head -n$K $KP_FILE | tail -n1`
-		PRV_KEY=${KEY_PAIR#*=}
+			PRV_KEY=${KEY_PAIR#*=}
 			ACC=${KEY_PAIR%]*}
-		$GETH_CMD --datadir=$DATA_DIR/$ID account import --password=<(echo password) <(echo $PRV_KEY)
+			$GETH_CMD --datadir=$DATA_DIR/$ID account import --password=<(echo password) <(echo $PRV_KEY)
 			if ((i==0)); then
-		echo ${ACC:1}
+				echo ${ACC:1}
 			fi
 		done
 	done
@@ -165,6 +174,8 @@ function generate_genesis {
 		# echo $ABSORPTION_EXPIRATION
 		# echo $SLASHING_DURATION
 		# echo $LOCKDOWN_EXPIRATION
+
+		echo $MELINH_BLOCK
 
 		echo $PREFUND_ADDR
 		prefund_addresses 128
@@ -217,14 +228,18 @@ function peer {
 
 function start {
 	IDs=($@)
+	CMD_BASE="$GETH --mine"
 	: ${MS:=1}
-	UNLOCKs="0"
-	PASSWDs="echo password"
-	for ((i=1; i<MS; ++)); do
-		UNLOCKs="$UNLOCKs,$i"
-		PASSWDs="$PASSWDs;echo password"
-	done
-	CMD_BASE="$GETH --mine --password=<($PASSWDs) --unlock=$UNLOCKs"
+	: ${UL:=$MS}
+	if ((UL>0)); then
+		UNLOCKs="0"
+		PASSWDs="echo password"
+		for ((i=1; i<UL; i++)); do
+			UNLOCKs="$UNLOCKs,$i"
+			PASSWDs="$PASSWDs;echo password"
+		done
+		CMD_BASE="$CMD_BASE --unlock=$UNLOCKs --password=<($PASSWDs)"
+	fi
 	# add --allow-insecure-unlock for geth 1.9+
 	$GETH --help | grep "allow-insecure-unlock" && CMD_BASE="$CMD_BASE --allow-insecure-unlock"
 	if [ ! -z "$BOOTNODE_STRING" ]; then
