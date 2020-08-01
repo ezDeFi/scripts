@@ -219,7 +219,10 @@ function peer {
 		do
 			I=`basename $D`
 			test "$ID" = "$I" && continue
+			NODEKEY=$DATA_DIR/$I/$CLIENT/nodekey
+			test -f "$NODEKEY" || continue
 			ENODE=`$BOOTNODE_CMD -nodekey=$DATA_DIR/$I/$CLIENT/nodekey -writeaddress`
+			test "$ENODE" || continue
 			ENODE=enode://$ENODE@127.0.0.1:$((30303 + I))
 			$GETH_CMD --datadir=$DATA_DIR/$ID --exec="admin.addPeer('$ENODE')" attach
 		done
