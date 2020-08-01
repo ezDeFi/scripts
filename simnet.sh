@@ -119,8 +119,8 @@ function import_account {
 	IDs=($@)
 	: ${KP_FILE:=../scripts/keypairs}
 	: ${MS:=1}
-	for ID in "${IDs[@]}"; do
 		for ((i=0; i<MS; i++)); do
+		for ID in "${IDs[@]}"; do
 			K=$((i+ID+1))
 			KEY_PAIR=`head -n$K $KP_FILE | tail -n1`
 			PRV_KEY=${KEY_PAIR#*=}
@@ -129,8 +129,8 @@ function import_account {
 			if ((i==0)); then
 				echo ${ACC:1}
 			fi
+		done &
 		done
-	done
 }
 
 function prefund_addresses {
