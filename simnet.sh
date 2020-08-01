@@ -8,7 +8,7 @@ UL=
 
 # Initialize our own variables:
 
-while getopts "h?r:m:u:" opt; do
+while getopts "h?r:m:u:t" opt; do
     case "$opt" in
     h|\?)
         echo "$(basename ""$0"") [-h|-?|-m MS|-u UL] command"
@@ -22,6 +22,9 @@ while getopts "h?r:m:u:" opt; do
 		;;
 	u)
 		UL=$OPTARG
+		;;
+	t)
+		NET=--testnet
 		;;
     esac
 done
@@ -82,7 +85,8 @@ BOOTNODE_STRING=
 : ${PUPPETH_CMD:=$BIN_PATH/puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=$BIN_PATH/bootnode$BINARY_POSTFIX}
 #GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
-GETH="$GETH_CMD --networkid=$NETWORK_ID  --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --miner.recommit=500ms"
+GETH="$GETH_CMD $NET"
+GETH="$GETH --networkid=$NETWORK_ID  --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --miner.recommit=500ms"
 GETH="$GETH --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0"
 # GETH="$GETH --ws --wsapi=db,eth,net,web3,personal --wsorigins=\"*\" --wsaddr=0.0.0.0"
 GETH="$GETH --syncmode=fast"
@@ -293,6 +297,9 @@ function load {
 	IDs=($@)
 	ACs=(`import_account ${IDs[@]}`)
 	
+	# stock network, no need to generate genesis
+	test "$NET" && return	
+
 	GENESIS_JSON=`init_genesis ${ACs[@]}`
 
 	for ID in "${IDs[@]}"; do
