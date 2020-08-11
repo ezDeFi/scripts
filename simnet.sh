@@ -84,9 +84,11 @@ BOOTNODE_STRING=
 : ${GETH_CMD:=$BIN_PATH/${CLIENT}$BINARY_POSTFIX}
 : ${PUPPETH_CMD:=$BIN_PATH/puppeth$BINARY_POSTFIX}
 : ${BOOTNODE_CMD:=$BIN_PATH/bootnode$BINARY_POSTFIX}
+: ${GAS_PRICE:=0}
 #GETH_CMD="$GETH_CMD --datadir=$DATA_DIR"
 GETH="$GETH_CMD $NET"
-GETH="$GETH --networkid=$NETWORK_ID  --gasprice=0 --targetgaslimit=42000000 --txpool.nolocals --txpool.pricelimit=0 --verbosity=$VERBOSITY --miner.recommit=500ms"
+GETH="$GETH --networkid=$NETWORK_ID --targetgaslimit=42000000 --txpool.nolocals --verbosity=$VERBOSITY --miner.recommit=500ms"
+GETH="$GETH --miner.gasprice=$GAS_PRICE --txpool.pricelimit=$GAS_PRICE"
 GETH="$GETH --rpc --rpcapi=db,eth,net,web3,personal --rpccorsdomain=\"*\" --rpcaddr=0.0.0.0"
 # GETH="$GETH --ws --wsapi=db,eth,net,web3,personal --wsorigins=\"*\" --wsaddr=0.0.0.0"
 GETH="$GETH --syncmode=fast"
