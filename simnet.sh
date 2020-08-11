@@ -304,6 +304,8 @@ function load {
 
 	GENESIS_JSON=`init_genesis ${ACs[@]}`
 
+	test "$GENESIS_JSON" || exit -1
+
 	for ID in "${IDs[@]}"; do
 		init_geth $ID $GENESIS_JSON &
 	done
