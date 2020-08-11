@@ -52,6 +52,7 @@ shift $((OPTIND-1))
 	# address: 000007e01c1507147a0e338db1d029559db6cb19
 PREFUND_ADDR=95e2fcBa1EB33dc4b8c6DCBfCC6352f0a253285d
 	# private: a0cf475a29e527dcb1c35f66f1d78852b14d5f5109f75fa4b38fbe46db2022a5
+ADMIN_ADDR=1367fc3B5C3cE52D61347c0FE2216E576cb2060E
 : ${BLOCK_TIME:=1}
 : ${EPOCH:=20}
 : ${THANGLONG_BLOCK:=20}
@@ -158,18 +159,18 @@ function generate_genesis {
 		echo 1
 		echo 3 # DCCS
 		echo $BLOCK_TIME
-		echo $EPOCH
+		# echo $EPOCH
 		for AC in "${ACs[@]}"; do
 			echo $AC
 		done
 		echo
-		echo $THANGLONG_BLOCK
-		echo $THANGLONG_EPOCH
+		# echo $THANGLONG_BLOCK
+		# echo $THANGLONG_EPOCH
 		echo $STAKE_REQUIRE
 		echo $STAKE_LOCK_HEIGHT
-		echo $TOKEN_OWNER
+		# echo $TOKEN_OWNER
 
-		echo $ENDURIO_BLOCK
+		# echo $ENDURIO_BLOCK
 		echo $LEAK_DURATION
 		echo $APP_CONFIRMS
 		echo $RANDOM_ITERATION
@@ -181,7 +182,9 @@ function generate_genesis {
 		# echo $SLASHING_DURATION
 		# echo $LOCKDOWN_EXPIRATION
 
-		echo $MELINH_BLOCK
+		# echo $MELINH_BLOCK
+
+		echo $ADMIN_ADDR
 
 		echo $PREFUND_ADDR
 		prefund_addresses 128
